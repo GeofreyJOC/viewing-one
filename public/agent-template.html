@@ -1,0 +1,706 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title id="pageTitle">Property Viewings - Viewing.One</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        :root {
+            --primary-color: #1a73e8;
+            --secondary-color: #2c3e50;
+            --accent-color: #e74c3c;
+            --light-bg: #f4f6f8;
+            --text-color: #333;
+            --border-color: #e0e0e0;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            color: var(--text-color);
+            background: var(--light-bg);
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 1100px;
+            margin: 0 auto;
+            padding: 0 20px;
+        }
+
+        /* Agent Header */
+        .agent-header {
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+            color: white;
+            padding: 40px 0;
+        }
+        .agent-profile {
+            display: flex;
+            align-items: center;
+            gap: 24px;
+        }
+        .agent-avatar {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            background: rgba(255,255,255,0.2);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2em;
+            font-weight: 700;
+            flex-shrink: 0;
+        }
+        .agent-text h1 {
+            font-size: 1.8em;
+            margin-bottom: 2px;
+        }
+        .agent-text .tagline {
+            opacity: 0.85;
+            font-size: 1em;
+            margin-bottom: 2px;
+        }
+        .agent-text .company {
+            font-size: 0.95em;
+            opacity: 0.85;
+            margin-bottom: 2px;
+        }
+        .agent-text .contact { font-size: 0.95em; opacity: 0.9; }
+
+        /* Sections */
+        .section-title {
+            font-size: 1.5em;
+            margin: 32px 0 20px;
+            color: var(--secondary-color);
+        }
+
+        /* Property Grid */
+        .properties-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+            gap: 24px;
+            margin-bottom: 40px;
+        }
+
+        .property-card {
+            background: white;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+            transition: transform 0.2s, box-shadow 0.2s;
+            border: 1px solid var(--border-color);
+        }
+        .property-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 6px 24px rgba(0,0,0,0.12);
+        }
+        .property-image {
+            height: 240px;
+            background: linear-gradient(135deg, #e0e0e0, #f5f5f5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 4em;
+            color: #bbb;
+            position: relative;
+            overflow: hidden;
+        }
+        .property-image img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            transition: transform 0.4s;
+        }
+        .property-card:hover .property-image img {
+            transform: scale(1.05);
+        }
+        .property-image .property-badge {
+            position: absolute;
+            top: 12px;
+            left: 12px;
+            background: var(--primary-color);
+            color: white;
+            padding: 5px 14px;
+            border-radius: 20px;
+            font-size: 0.75em;
+            text-transform: capitalize;
+            font-weight: 600;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+        }
+        .property-body {
+            padding: 18px;
+        }
+        .property-price {
+            font-size: 1.4em;
+            font-weight: 700;
+            color: var(--primary-color);
+            margin-bottom: 4px;
+        }
+        .property-title {
+            font-size: 1.1em;
+            font-weight: 600;
+            margin-bottom: 4px;
+            color: var(--secondary-color);
+            line-height: 1.4;
+        }
+        .property-address {
+            font-size: 0.88em;
+            color: #777;
+            margin-bottom: 12px;
+        }
+
+
+        /* Viewing Slots */
+        .slots-label {
+            font-size: 0.85em;
+            font-weight: 600;
+            color: #888;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 8px;
+        }
+        .slot-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+            gap: 6px;
+        }
+        .slot-btn {
+            background: #f8faff;
+            border: 1px solid var(--primary-color);
+            border-radius: 8px;
+            padding: 8px;
+            cursor: pointer;
+            text-align: center;
+            transition: all 0.2s;
+            color: var(--primary-color);
+        }
+        .slot-btn:hover {
+            background: var(--primary-color);
+            color: white;
+        }
+        .slot-btn .slot-date { font-size: 0.8em; }
+        .slot-btn .slot-time { font-weight: 700; font-size: 0.95em; }
+        .btn-request-booking {
+            width: 100%;
+            padding: 12px;
+            margin-top: 10px;
+            background: white;
+            color: var(--primary-color);
+            border: 2px dashed var(--primary-color);
+            border-radius: 8px;
+            font-size: 0.95em;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .btn-request-booking:hover { background: var(--primary-color); color: white; }
+
+        /* Loading / Empty / Error states */
+        .loading-state, .empty-state, .error-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: #999;
+        }
+        .loading-state .icon, .empty-state .icon {
+            font-size: 3em;
+            margin-bottom: 16px;
+        }
+        .loading-spinner {
+            width: 40px;
+            height: 40px;
+            border: 3px solid #e0e0e0;
+            border-top-color: var(--primary-color);
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            margin: 0 auto 16px;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .error-box {
+            background: #fff0f0;
+            border: 1px solid #ffcccc;
+            border-radius: 12px;
+            padding: 40px;
+            max-width: 480px;
+            margin: 0 auto;
+        }
+        .error-box h2 { color: #c0392b; margin-bottom: 8px; }
+        .error-box p { color: #666; }
+
+        /* Modal */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.5);
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+        .modal-overlay.active {
+            display: flex;
+        }
+        .modal-box {
+            background: white;
+            border-radius: 16px;
+            padding: 32px;
+            max-width: 460px;
+            width: 90%;
+            position: relative;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.2);
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+        .modal-close {
+            position: absolute;
+            top: 12px;
+            right: 16px;
+            font-size: 1.5em;
+            background: none;
+            border: none;
+            cursor: pointer;
+            color: #999;
+        }
+        .modal-close:hover { color: #333; }
+        .modal-box h2 {
+            font-size: 1.4em;
+            margin-bottom: 4px;
+            color: var(--secondary-color);
+        }
+        .modal-subtitle {
+            color: #777;
+            font-size: 0.9em;
+            margin-bottom: 16px;
+        }
+        .selected-slot-info {
+            background: #f0f7ff;
+            border: 1px solid #cce5ff;
+            border-radius: 8px;
+            padding: 12px;
+            margin-bottom: 20px;
+            font-size: 0.95em;
+            color: var(--secondary-color);
+        }
+
+        .form-group {
+            margin-bottom: 16px;
+        }
+        .form-group label {
+            display: block;
+            margin-bottom: 6px;
+            font-weight: 600;
+            font-size: 0.9em;
+            color: #555;
+        }
+        .form-group .required { color: var(--accent-color); }
+        .form-group input {
+            width: 100%;
+            padding: 10px 14px;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            font-size: 1em;
+            transition: border-color 0.2s;
+        }
+        .form-group input:focus {
+            outline: none;
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgba(26, 115, 232, 0.1);
+        }
+
+        .btn-submit {
+            width: 100%;
+            padding: 14px;
+            background: var(--primary-color);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 1em;
+            font-weight: 600;
+            cursor: pointer;
+            transition: opacity 0.2s;
+        }
+        .btn-submit:hover { opacity: 0.9; }
+        .btn-submit:disabled { opacity: 0.5; cursor: not-allowed; }
+
+        .success-message { text-align: center; padding: 20px; }
+        .success-message .check { font-size: 3em; margin-bottom: 12px; }
+        .success-message h3 { color: #2e7d32; margin-bottom: 8px; }
+        .success-message p { color: #666; margin-bottom: 20px; line-height: 1.6; }
+        .success-message .done-btn {
+            padding: 12px 24px;
+            background: var(--primary-color);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+        }
+
+        /* Footer */
+        .footer {
+            background: var(--secondary-color);
+            color: white;
+            text-align: center;
+            padding: 24px;
+            margin-top: 40px;
+        }
+        .footer .powered { opacity: 0.7; font-size: 0.85em; margin-top: 4px; }
+        .footer .powered a { color: inherit; text-decoration: underline; }
+        
+        @media (max-width: 768px) {
+            .agent-profile { flex-direction: column; text-align: center; }
+            .agent-text .contact { justify-content: center; }
+            .properties-grid { grid-template-columns: 1fr; }
+            .slot-grid { grid-template-columns: repeat(2, 1fr); }
+        }
+    </style>
+</head>
+<body>
+    <header class="agent-header">
+        <div class="container">
+            <div class="agent-profile" id="agentProfile">
+                <div class="agent-avatar" id="agentAvatar">V</div>
+                <div class="agent-text">
+                    <h1 id="agentName">Loading...</h1>
+                    <p class="tagline" id="agentTagline"></p>
+                    <p class="company" id="agentCompanyName"></p>
+                    <div class="contact">
+                        <span id="agentPhone"></span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <main class="container">
+        <div class="loading-state" id="loadingState">
+            <div class="loading-spinner"></div>
+            <p>Loading properties...</p>
+        </div>
+        
+        <div class="error-state" id="errorState" style="display:none">
+            <div class="error-box">
+                <h2>😕 Agent Not Found</h2>
+                <p>The agent page you're looking for doesn't exist or is not active.</p>
+            </div>
+        </div>
+        
+        <div id="propertiesSection" style="display:none">
+            <h2 class="section-title">Available Properties</h2>
+            <div class="properties-grid" id="propertiesGrid"></div>
+        </div>
+        
+        <div class="empty-state" id="emptyState" style="display:none">
+            <div class="icon">🏠</div>
+            <p>No properties available for viewing at the moment.</p>
+        </div>
+    </main>
+
+    <div class="modal-overlay" id="bookingModal">
+        <div class="modal-box" id="modalContent">
+            <button class="modal-close" onclick="closeModal()">×</button>
+            <div id="bookingFormView">
+                <h2 id="modalTitle">Book Viewing</h2>
+                <p class="modal-subtitle" id="modalProperty">Property details</p>
+                
+                <div class="selected-slot-info">
+                    📅 Viewing: <strong id="modalSlotInfo">Date & Time</strong>
+                </div>
+                
+                <form id="bookingForm" onsubmit="submitBooking(event)">
+                    <div class="form-group">
+                        <label>Your Name <span class="required">*</span></label>
+                        <input type="text" id="visitorName" required placeholder="John Doe">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>WhatsApp Number <span class="required">*</span></label>
+                        <input type="tel" id="visitorWhatsApp" required placeholder="+27 82 123 4567">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Email <span class="required">*</span></label>
+                        <input type="email" id="visitorEmail" required placeholder="john@example.com">
+                    </div>
+                    
+                    <button type="submit" class="btn-submit" id="submitBtn">Confirm Booking</button>
+                </form>
+            </div>
+            
+            <div id="bookingSuccessView" style="display:none">
+                <div class="success-message">
+                    <div class="check">✅</div>
+                    <h3>Booking Confirmed!</h3>
+                    <p id="successDetails"></p>
+                    <button class="done-btn" onclick="closeModal()">Done</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <footer class="footer">
+        <div>&copy; 2026 <span id="footerAgentName">Agent</span></div>
+        <div class="powered" id="poweredBy">
+            Powered by <a href="https://viewing.one">Viewing.One</a>
+        </div>
+    </footer>
+
+    <script>
+        // Get slug from URL
+        const slug = window.location.pathname.split('/').filter(function(s) { return s.length > 0; }).pop() || '';
+        
+        let selectedProperty = null;
+        let selectedSlot = null;
+
+        async function loadPage() {
+            // Check for embedded data from server (avoids cross-instance API calls)
+            var data = window.__INITIAL_AGENT_DATA || null;
+            
+            if (!data) {
+                document.getElementById('loadingState').innerHTML = '<div class="loading-spinner"></div><p>Loading properties...</p>';
+                
+                // Try up to 3 times with timeout
+                var attempts = 0;
+                var maxAttempts = 3;
+
+                while (attempts < maxAttempts) {
+                    attempts++;
+                    try {
+                        var controller = new AbortController();
+                        var timeoutId = setTimeout(function() { controller.abort(); }, 25000);
+                        
+                        var apiBase = window.location.hostname.includes('viewing.one') && !window.location.hostname.includes('vercel.app') 
+                          ? 'https://viewing-one.vercel.app' 
+                          : '';
+                        var res = await fetch(apiBase + '/api/agents/' + slug, { signal: controller.signal });
+                        clearTimeout(timeoutId);
+                        
+                        if (!res.ok) {
+                            if (attempts < maxAttempts) {
+                                document.getElementById('loadingState').innerHTML = '<div class="loading-spinner"></div><p>Waking up server... (attempt ' + (attempts + 1) + '/' + maxAttempts + ')</p>';
+                                await new Promise(r => setTimeout(r, 3000));
+                                continue;
+                            }
+                            throw new Error('HTTP ' + res.status);
+                        }
+                        
+                        data = await res.json();
+                        break;
+                    } catch (fetchErr) {
+                        if (fetchErr.name === 'AbortError' && attempts < maxAttempts) {
+                            document.getElementById('loadingState').innerHTML = '<div class="loading-spinner"></div><p>Still waking up... (attempt ' + (attempts + 1) + '/' + maxAttempts + ')</p>';
+                            continue;
+                        }
+                        if (attempts >= maxAttempts) {
+                            document.getElementById('loadingState').style.display = 'none';
+                            document.getElementById('errorState').style.display = 'block';
+                            return;
+                        }
+                    }
+                }
+            }
+
+            // The embedded data (if any) matches the API response format
+            if (!data || !data.success || !data.agent) {
+                    document.getElementById('loadingState').style.display = 'none';
+                    document.getElementById('errorState').style.display = 'block';
+                    return;
+                }
+
+                const agent = data.agent;
+
+                // Apply branding
+                if (agent.primaryColor) document.documentElement.style.setProperty('--primary-color', agent.primaryColor);
+                if (agent.secondaryColor) document.documentElement.style.setProperty('--secondary-color', agent.secondaryColor);
+                if (agent.accentColor) document.documentElement.style.setProperty('--accent-color', agent.accentColor);
+
+                // Update header
+                document.getElementById('pageTitle').textContent = agent.name + ' - Property Viewings';
+                document.getElementById('agentName').textContent = agent.name;
+                document.getElementById('agentAvatar').textContent = (agent.name || 'V').charAt(0).toUpperCase();
+                if (agent.tagline) document.getElementById('agentTagline').textContent = agent.tagline;
+                if (agent.companyName) document.getElementById('agentCompanyName').textContent = agent.companyName;
+                if (agent.phone) document.getElementById('agentPhone').textContent = '📞 ' + agent.phone;
+                document.getElementById('footerAgentName').textContent = agent.companyName || agent.name;
+
+                if (agent.logo) {
+                    document.getElementById('agentAvatar').innerHTML = '<img src="' + agent.logo + '" style="width:80px;height:80px;border-radius:50%;object-fit:cover;">';
+                }
+
+                if (agent.showPoweredBy === false) {
+                    document.getElementById('poweredBy').style.display = 'none';
+                }
+
+                document.getElementById('loadingState').style.display = 'none';
+
+                if (data.properties && data.properties.length > 0) {
+                    document.getElementById('propertiesSection').style.display = 'block';
+                    renderProperties(data.properties);
+                } else {
+                    document.getElementById('emptyState').style.display = 'block';
+                }
+        }
+
+        function renderProperties(properties) {
+            const grid = document.getElementById('propertiesGrid');
+            grid.innerHTML = '';
+
+            properties.forEach((property) => {
+                const card = document.createElement('div');
+                card.className = 'property-card';
+
+                const availableSlots = property.viewingSlots || [];
+                const imgSrc = property.images && property.images.length > 0
+                    ? (typeof property.images[0] === 'string' ? property.images[0] : property.images[0].url)
+                    : null;
+
+                // Build features row (beds/baths removed — all properties should look uniform)
+                let featuresHTML = '';
+
+                // Build viewing slots / request booking — filter out past slots
+                var now = new Date();
+                var futureSlots = availableSlots.filter(function(s) {
+                  var slotDateTime = new Date(s.date + 'T' + (s.time || '00:00'));
+                  return slotDateTime > now;
+                });
+                let slotsHTML = '';
+                if (futureSlots.length > 0) {
+                    slotsHTML = '<div class="slots-label">Available Viewings</div><div class="slot-grid">';
+                    futureSlots.slice(0, 6).forEach(slot => {
+                        slotsHTML += '<button class="slot-btn" onclick="openBooking(\'' + property.id + '\', \'' + slot.id + '\', \'' + formatDate(slot.date) + '\', \'' + slot.time + '\', \'' + property.title.replace(/'/g, "\\'") + '\')">' +
+                            '<div class="slot-date">' + formatDate(slot.date) + '</div>' +
+                            '<div class="slot-time">' + slot.time + '</div></button>';
+                    });
+                    if (futureSlots.length > 6) {
+                        slotsHTML += '<button class="slot-btn" style="background:#f0f0f0;border-color:#ccc;color:#888;" onclick="alert(\'Scroll down to see more slots in the full list\')">+' + (futureSlots.length - 6) + ' more</button>';
+                    }
+                    slotsHTML += '</div>';
+                } else {
+                    slotsHTML = '<button class="btn-request-booking" onclick="openRequestBooking(\'' + property.id + '\', \'' + property.title.replace(/'/g, "\\'") + '\')">📅 Request Booking</button>';
+                }
+
+                card.innerHTML =
+                    '<div class="property-image">' +
+                        (imgSrc ? '<img src="' + imgSrc + '" alt="' + property.title + '" loading="lazy">' : '🏠') +
+                        (property.propertyType ? '<span class="property-badge">' + property.propertyType + '</span>' : '') +
+                    '</div>' +
+                    '<div class="property-body">' +
+                        '<div class="property-price">' + (property.price || 'Price on request') + '</div>' +
+                        '<div class="property-title">' + property.title + '</div>' +
+                        '<div class="property-address">📍 ' + (property.location || 'To be confirmed') + '</div>' +
+                        featuresHTML +
+                        slotsHTML +
+                    '</div>';
+
+                grid.appendChild(card);
+            });
+        }
+
+        function openBooking(propertyId, slotId, date, time, title) {
+            selectedProperty = { id: propertyId, title };
+            selectedSlot = { id: slotId, date, time };
+
+            document.getElementById('modalTitle').textContent = 'Book Viewing';
+            document.getElementById('modalProperty').textContent = title;
+            document.getElementById('modalSlotInfo').textContent = date + ' at ' + time;
+            
+            document.getElementById('bookingFormView').style.display = 'block';
+            document.getElementById('bookingSuccessView').style.display = 'none';
+            document.getElementById('bookingForm').reset();
+            document.getElementById('submitBtn').disabled = false;
+            document.getElementById('submitBtn').textContent = 'Confirm Booking';
+            
+            document.getElementById('bookingModal').classList.add('active');
+        }
+
+        function openRequestBooking(propertyId, title) {
+            selectedProperty = { id: propertyId, title };
+            selectedSlot = { id: '__request__', date: 'To be arranged', time: 'To be arranged' };
+
+            document.getElementById('modalTitle').textContent = 'Request Viewing';
+            document.getElementById('modalProperty').textContent = title;
+            document.getElementById('modalSlotInfo').innerHTML = '⏳ <em>No time slots set yet. The agent will contact you to arrange a suitable time.</em>';
+            
+            document.getElementById('bookingFormView').style.display = 'block';
+            document.getElementById('bookingSuccessView').style.display = 'none';
+            document.getElementById('bookingForm').reset();
+            document.getElementById('submitBtn').disabled = false;
+            document.getElementById('submitBtn').textContent = 'Send Request';
+            
+            document.getElementById('bookingModal').classList.add('active');
+        }
+
+        function closeModal() {
+            document.getElementById('bookingModal').classList.remove('active');
+            selectedSlot = null;
+            selectedProperty = null;
+        }
+
+        async function submitBooking(e) {
+            e.preventDefault();
+            
+            const name = document.getElementById('visitorName').value.trim();
+            const whatsapp = document.getElementById('visitorWhatsApp').value.trim();
+            const email = document.getElementById('visitorEmail').value.trim();
+
+            if (!name || !whatsapp) {
+                alert('Please fill in your name and WhatsApp number');
+                return;
+            }
+
+            const btn = document.getElementById('submitBtn');
+            btn.disabled = true;
+            btn.textContent = 'Booking...';
+
+            try {
+                const res = await fetch('/api/bookings', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        propertyId: selectedProperty.id,
+                        slotId: selectedSlot.id,
+                        visitorName: name,
+                        visitorWhatsApp: whatsapp,
+                        visitorEmail: email
+                    })
+                });
+
+                const data = await res.json();
+
+                if (!data.success) {
+                    throw new Error(data.message);
+                }
+
+                document.getElementById('bookingFormView').style.display = 'none';
+                document.getElementById('bookingSuccessView').style.display = 'block';
+                if (selectedSlot.id === '__request__') {
+                    document.getElementById('successDetails').textContent = 
+                        'Your viewing request for ' + selectedProperty.title + ' has been sent. The agent will contact you via WhatsApp to arrange a suitable time.';
+                } else {
+                    document.getElementById('successDetails').textContent = 
+                        'Your viewing for ' + selectedProperty.title + ' on ' + selectedSlot.date + ' at ' + selectedSlot.time + ' has been booked. The agent will confirm via WhatsApp.';
+                }
+
+                loadPage();
+
+            } catch (err) {
+                alert('Booking failed: ' + err.message);
+                btn.disabled = false;
+                btn.textContent = 'Try Again';
+            }
+        }
+
+        function formatDate(dateStr) {
+            const d = new Date(dateStr + 'T00:00:00');
+            if (isNaN(d.getTime())) return dateStr;
+            return d.toLocaleDateString('en-ZA', { weekday: 'short', day: 'numeric', month: 'short' });
+        }
+
+        document.getElementById('bookingModal').addEventListener('click', function(e) {
+            if (e.target === this) closeModal();
+        });
+
+        loadPage();
+    </script>
+</body>
+</html>

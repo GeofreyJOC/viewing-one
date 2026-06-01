@@ -1,0 +1,499 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Viewing.One Admin</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        body {
+            background: #f5f7fa;
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+        
+        header {
+            background: linear-gradient(135deg, #2c3e50 0%, #3498db 100%);
+            color: white;
+            padding: 25px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .logo {
+            font-size: 1.8em;
+            font-weight: bold;
+        }
+        
+        .domain {
+            background: rgba(255, 255, 255, 0.2);
+            padding: 8px 15px;
+            border-radius: 20px;
+            font-family: monospace;
+        }
+        
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            padding: 25px;
+            background: #f8f9fa;
+            border-bottom: 1px solid #e9ecef;
+        }
+        
+        .stat-card {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.05);
+            border: 1px solid #e9ecef;
+        }
+        
+        .stat-number {
+            font-size: 2.5em;
+            font-weight: bold;
+            color: #3498db;
+            margin-bottom: 10px;
+        }
+        
+        .stat-label {
+            color: #6c757d;
+            font-size: 0.9em;
+        }
+        
+        .content {
+            padding: 25px;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+        }
+        
+        @media (max-width: 768px) {
+            .content {
+                grid-template-columns: 1fr;
+            }
+        }
+        
+        .section {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 20px;
+            border: 1px solid #e9ecef;
+        }
+        
+        .section-title {
+            font-size: 1.3em;
+            font-weight: bold;
+            color: #2c3e50;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #3498db;
+        }
+        
+        .agent-list, .property-list {
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        
+        .agent-item, .property-item {
+            background: white;
+            padding: 15px;
+            margin-bottom: 10px;
+            border-radius: 8px;
+            border: 1px solid #e9ecef;
+            transition: transform 0.2s;
+        }
+        
+        .agent-item:hover, .property-item:hover {
+            transform: translateX(5px);
+            border-color: #3498db;
+        }
+        
+        .agent-name {
+            font-weight: bold;
+            color: #2c3e50;
+            margin-bottom: 5px;
+        }
+        
+        .agent-slug {
+            color: #3498db;
+            font-family: monospace;
+            font-size: 0.9em;
+            margin-bottom: 5px;
+        }
+        
+        .agent-plan {
+            display: inline-block;
+            padding: 3px 8px;
+            border-radius: 12px;
+            font-size: 0.8em;
+            font-weight: bold;
+        }
+        
+        .plan-starter {
+            background: #e8f4fc;
+            color: #3498db;
+        }
+        
+        .plan-professional {
+            background: #d4edda;
+            color: #155724;
+        }
+        
+        .property-title {
+            font-weight: bold;
+            color: #2c3e50;
+            margin-bottom: 5px;
+        }
+        
+        .property-price {
+            color: #27ae60;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+        
+        .property-status {
+            display: inline-block;
+            padding: 3px 8px;
+            border-radius: 12px;
+            font-size: 0.8em;
+            font-weight: bold;
+        }
+        
+        .status-draft {
+            background: #fff3cd;
+            color: #856404;
+        }
+        
+        .status-active {
+            background: #d4edda;
+            color: #155724;
+        }
+        
+        .email-section {
+            grid-column: 1 / -1;
+            margin-top: 20px;
+        }
+        
+        .email-boxes {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-top: 20px;
+        }
+        
+        @media (max-width: 768px) {
+            .email-boxes {
+                grid-template-columns: 1fr;
+            }
+        }
+        
+        .email-box {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            border: 2px solid #e9ecef;
+        }
+        
+        .email-address {
+            font-family: monospace;
+            font-size: 1.2em;
+            color: #3498db;
+            margin-bottom: 15px;
+            padding: 10px;
+            background: #f8f9fa;
+            border-radius: 5px;
+        }
+        
+        .email-purpose {
+            color: #6c757d;
+            margin-bottom: 15px;
+            line-height: 1.5;
+        }
+        
+        .email-responsibility {
+            background: #e8f4fc;
+            padding: 10px;
+            border-radius: 5px;
+            border-left: 4px solid #3498db;
+            font-size: 0.9em;
+        }
+        
+        .actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-top: 1px solid #e9ecef;
+        }
+        
+        button {
+            padding: 12px 25px;
+            border: none;
+            border-radius: 8px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .btn-primary {
+            background: #3498db;
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            background: #2980b9;
+        }
+        
+        .btn-secondary {
+            background: #27ae60;
+            color: white;
+        }
+        
+        .btn-secondary:hover {
+            background: #219653;
+        }
+        
+        .btn-outline {
+            background: white;
+            color: #3498db;
+            border: 2px solid #3498db;
+        }
+        
+        .btn-outline:hover {
+            background: #e8f4fc;
+        }
+        
+        .empty-state {
+            text-align: center;
+            padding: 40px 20px;
+            color: #6c757d;
+        }
+        
+        .empty-state .emoji {
+            font-size: 3em;
+            margin-bottom: 15px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div class="logo">🏠 Viewing.One Admin</div>
+            <div class="domain">viewing.one ✅</div>
+        </header>
+        
+        <div class="stats">
+            <div class="stat-card">
+                <div class="stat-number" id="agentCount">0</div>
+                <div class="stat-label">Agents Registered</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="propertyCount">0</div>
+                <div class="stat-label">Properties Listed</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="activeCount">0</div>
+                <div class="stat-label">Active Properties</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="bookingCount">0</div>
+                <div class="stat-label">Viewings Booked</div>
+            </div>
+        </div>
+        
+        <div class="content">
+            <div class="section">
+                <div class="section-title">👨‍💼 Registered Agents</div>
+                <div class="agent-list" id="agentList">
+                    <div class="empty-state">
+                        <div class="emoji">👤</div>
+                        <p>No agents registered yet</p>
+                        <p style="font-size: 0.9em; margin-top: 10px;">Agents will appear here when they sign up</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="section">
+                <div class="section-title">🏠 Recent Properties</div>
+                <div class="property-list" id="propertyList">
+                    <div class="empty-state">
+                        <div class="emoji">🏠</div>
+                        <p>No properties listed yet</p>
+                        <p style="font-size: 0.9em; margin-top: 10px;">Properties will appear here when submitted</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="section email-section">
+                <div class="section-title">📧 Email Workflow System</div>
+                <div class="email-boxes">
+                    <div class="email-box">
+                        <div class="email-address">listings@viewing.one</div>
+                        <div class="email-purpose">
+                            <strong>Purpose:</strong> Property submissions from agents<br>
+                            Agents email property links to this address
+                        </div>
+                        <div class="email-responsibility">
+                            <strong>Responsibility:</strong> Agent 2 - Listings & Scraping<br>
+                            Monitors this inbox, processes submissions, adds to system
+                        </div>
+                    </div>
+                    
+                    <div class="email-box">
+                        <div class="email-address">feedback@viewing.one</div>
+                        <div class="email-purpose">
+                            <strong>Purpose:</strong> Bug reports & feature requests<br>
+                            Agents email feedback/suggestions to this address
+                        </div>
+                        <div class="email-responsibility">
+                            <strong>Responsibility:</strong> Agent 1 - Feedback & Fixes<br>
+                            Monitors this inbox, implements improvements, communicates
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="actions">
+            <button class="btn-primary" onclick="loadData()">🔄 Refresh Data</button>
+            <button class="btn-secondary" onclick="simulateAgent()">👤 Simulate Agent Signup</button>
+            <button class="btn-outline" onclick="simulateProperty()">🏠 Simulate Property Submission</button>
+        </div>
+    </div>
+    
+    <script>
+        // Load initial data
+        async function loadData() {
+            try {
+                // Load agents
+                const agentsRes = await fetch('/api/admin/agents');
+                const agentsData = await agentsRes.json();
+                
+                if (agentsData.success && agentsData.agents.length > 0) {
+                    document.getElementById('agentCount').textContent = agentsData.agents.length;
+                    
+                    const agentList = document.getElementById('agentList');
+                    agentList.innerHTML = agentsData.agents.map(agent => `
+                        <div class="agent-item">
+                            <div class="agent-name">${agent.name}</div>
+                            <div class="agent-slug">viewing.one/${agent.slug}</div>
+                            <div>
+                                <span class="agent-plan plan-${agent.plan}">${agent.plan.toUpperCase()}</span>
+                                <span style="float: right; font-size: 0.8em; color: #6c757d;">
+                                    ${new Date(agent.createdAt).toLocaleDateString()}
+                                </span>
+                            </div>
+                        </div>
+                    `).join('');
+                }
+                
+                // Simulate property data (in production: actual API call)
+                const properties = [
+                    { title: 'Modern House Sandton', price: 'R 3,500,000', status: 'active' },
+                    { title: 'Luxury Apartment CT', price: 'R 8,200,000', status: 'draft' },
+                    { title: 'Family Home Pretoria', price: 'R 2,100,000', status: 'active' }
+                ];
+                
+                document.getElementById('propertyCount').textContent = properties.length;
+                document.getElementById('activeCount').textContent = properties.filter(p => p.status === 'active').length;
+                document.getElementById('bookingCount').textContent = Math.floor(Math.random() * 10);
+                
+                const propertyList = document.getElementById('propertyList');
+                propertyList.innerHTML = properties.map(property => `
+                    <div class="property-item">
+                        <div class="property-title">${property.title}</div>
+                        <div class="property-price">${property.price}</div>
+                        <div>
+                            <span class="property-status status-${property.status}">${property.status.toUpperCase()}</span>
+                            <span style="float: right; font-size: 0.8em; color: #6c757d;">
+                                ${property.status === 'draft' ? 'Needs slots' : 'Ready for viewing'}
+                            </span>
+                        </div>
+                    </div>
+                `).join('');
+                
+            } catch (error) {
+                console.error('Error loading data:', error);
+            }
+        }
+        
+        // Simulate agent registration
+        async function simulateAgent() {
+            const agents = [
+                { name: 'John Smith', company: 'Smith Properties', plan: 'professional' },
+                { name: 'Sarah Johnson', company: 'Urban Living', plan: 'starter' },
+                { name: 'Mike Williams', company: 'Premium Realty', plan: 'professional' }
+            ];
+            
+            const randomAgent = agents[Math.floor(Math.random() * agents.length)];
+            
+            try {
+                const response = await fetch('/api/agents/register', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        name: randomAgent.name,
+                        email: `${randomAgent.name.toLowerCase().replace(' ', '.')}@example.com`,
+                        password: 'password123',
+                        companyName: randomAgent.company,
+                        plan: randomAgent.plan
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    alert(`✅ Agent registered!\n\nName: ${data.agent.name}\nURL: ${data.agent.url}\nPlan: ${data.agent.plan}`);
+                    loadData();
+                } else {
+                    alert(`❌ Error: ${data.message}`);
+                }
+            } catch (error) {
+                alert('Error simulating agent registration');
+            }
+        }
+        
+        // Simulate property submission
+        function simulateProperty() {
+            const properties = [
+                'https://www.property24.com/for-sale/house/sandton/pretoria/123456',
+                'https://www.privateproperty.co.za/for-sale/gauteng/johannesburg/789012',
+                'https://www.gumtree.co.za/a-houses-for-sale/pretoria/beautiful-family-home/1234567890'
+            ];
+            
+            const randomUrl = properties[Math.floor(Math.random() * properties.length)];
+            
+            alert(`📧 Property submitted to listings@viewing.one\n\nURL: ${randomUrl}\n\nIn production: This would be processed by Agent 2 (Listings & Scraping)`);
+            
+            // Update stats
+            const currentCount = parseInt(document.getElementById('propertyCount').textContent);
+            document.getElementById('propertyCount').textContent = currentCount + 1;
+            
+            const currentActive = parseInt(document.getElementById('activeCount').textContent);
+            document.getElementById('activeCount').textContent = currentActive + (Math.random() > 0.3 ? 1 : 0);
+        }
+        
+        // Initialize
+        document.addEventListener('DOMContentLoaded', loadData);
+    </script>
+</body>
+</html>

@@ -1,0 +1,1323 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard — Viewing.One</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #f4f6fa; color: #1a1a2e; line-height: 1.6;
+        }
+        .sidebar {
+            position: fixed; left: 0; top: 0; bottom: 0; width: 240px;
+            background: #1a1a2e; color: white; padding: 24px 0;
+        }
+        .sidebar .logo { padding: 0 20px 24px; font-size: 20px; font-weight: 700; border-bottom: 1px solid #333; }
+        .sidebar .logo span { color: #818cf8; }
+        .sidebar .nav-item {
+            padding: 12px 20px; color: #aaa; cursor: pointer; font-size: 14px; font-weight: 500;
+            transition: all 0.15s; display: flex; align-items: center; gap: 10px;
+        }
+        .sidebar .nav-item:hover { background: #2a2a4e; color: white; }
+        .sidebar .nav-item.active { background: #4f46e5; color: white; }
+        .sidebar .nav-item .badge {
+            margin-left: auto; background: #dc2626; color: white; font-size: 11px;
+            padding: 2px 8px; border-radius: 10px; font-weight: 600;
+        }
+        .sidebar .user-info {
+            position: absolute; bottom: 0; left: 0; right: 0; padding: 16px 20px;
+            border-top: 1px solid #333; font-size: 13px; color: #888;
+        }
+        .sidebar .user-info strong { display: block; color: #ddd; }
+
+        .main { margin-left: 240px; padding: 24px 32px; max-width: 1200px; }
+
+        .page-title { font-size: 24px; font-weight: 700; margin-bottom: 4px; }
+        .page-subtitle { color: #888; font-size: 14px; margin-bottom: 24px; }
+        .page-link {
+            display: inline-block; background: #eef2ff; color: #4f46e5; padding: 6px 14px;
+            border-radius: 6px; font-size: 13px; font-weight: 500; margin-bottom: 24px;
+            text-decoration: none;
+        }
+        .page-link:hover { background: #e0e7ff; }
+
+        .card {
+            background: white; border-radius: 12px; box-shadow: 0 1px 6px rgba(0,0,0,0.04);
+            padding: 24px; margin-bottom: 20px; border: 1px solid #eef2ff;
+        }
+        .card h3 { font-size: 16px; font-weight: 600; margin-bottom: 12px; }
+
+        .empty-state { text-align: center; padding: 60px 24px; color: #888; }
+        .empty-state .icon { font-size: 48px; margin-bottom: 12px; }
+        .empty-state h3 { font-size: 18px; margin-bottom: 8px; color: #333; }
+
+        .btn {
+            display: inline-block; padding: 8px 18px; border-radius: 8px; font-weight: 500;
+            font-size: 14px; border: none; cursor: pointer; transition: all 0.15s;
+        }
+        .btn-primary { background: #4f46e5; color: white; }
+        .btn-primary:hover { background: #4338ca; }
+        .btn-sm { padding: 6px 12px; font-size: 13px; }
+        .btn-outline { background: transparent; color: #4f46e5; border: 1.5px solid #4f46e5; }
+        .btn-outline:hover { background: #eef2ff; }
+        .btn-danger { background: #dc2626; color: white; }
+        .btn-danger:hover { background: #b91c1c; }
+        .btn-success { background: #10b981; color: white; }
+        .btn-success:hover { background: #059669; }
+        .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+        /* Property grid */
+        .prop-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 16px; }
+        .prop-card {
+            background: white; border-radius: 12px; overflow: hidden;
+            box-shadow: 0 1px 6px rgba(0,0,0,0.04); border: 1px solid #eef2ff;
+        }
+        .prop-card .img-wrap {
+            height: 180px; background: #eef2ff; display: flex; align-items: center; justify-content: center;
+            overflow: hidden;
+        }
+        .prop-card .img-wrap img { width: 100%; height: 100%; object-fit: cover; }
+        .prop-card .img-wrap .no-img { color: #aaa; font-size: 13px; }
+        .prop-card .body { padding: 14px 16px; }
+        .prop-card .body .title { font-weight: 600; font-size: 15px; margin-bottom: 4px; }
+        .prop-card .body .price { font-weight: 700; font-size: 17px; color: #4f46e5; }
+        .prop-card .body .meta { font-size: 13px; color: #888; margin: 4px 0 10px; }
+        .prop-card .body .actions { display: flex; gap: 6px; flex-wrap: wrap; }
+
+        /* Modal */
+        .modal-overlay {
+            display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.4);
+            z-index: 100; align-items: center; justify-content: center;
+        }
+        .modal-overlay.show { display: flex; }
+        .modal {
+            background: white; border-radius: 16px; padding: 28px; max-width: 500px;
+            width: 90%; box-shadow: 0 8px 32px rgba(0,0,0,0.15);
+        }
+        .modal h2 { font-size: 20px; margin-bottom: 20px; }
+        .modal .form-group { margin-bottom: 14px; }
+        .modal .form-group label { display: block; font-weight: 500; font-size: 13px; margin-bottom: 4px; color: #555; }
+        .modal .form-group input, .modal .form-group select { width: 100%; padding: 10px 14px; border: 1px solid #ddd; border-radius: 8px; font-size: 14px; }
+        .modal .form-group input:focus { outline: none; border-color: #4f46e5; box-shadow: 0 0 0 3px rgba(79,70,229,0.1); }
+        .modal .btn-row { display: flex; gap: 8px; margin-top: 16px; }
+        .modal .btn-row .btn { flex: 1; text-align: center; }
+        .modal .form-group.checkbox { display: flex; align-items: center; gap: 8px; }
+        .modal .form-group.checkbox input { width: auto; }
+        .modal .form-group.checkbox label { margin: 0; }
+
+        .badge { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 11px; font-weight: 600; }
+        .badge-green { background: #d1fae5; color: #065f46; }
+        .badge-gray { background: #e5e7eb; color: #374151; }
+
+        .slot-pills { display: flex; gap: 6px; flex-wrap: wrap; margin: 8px 0; }
+        .slot-pill { background: #eef2ff; color: #4f46e5; padding: 4px 10px; border-radius: 6px; font-size: 12px; font-weight: 500; }
+
+        .hidden { display: none; }
+
+        /* Add URL section */
+        .url-input-group { display: flex; gap: 8px; }
+        .url-input-group input { flex: 1; padding: 10px 14px; border: 1px solid #ddd; border-radius: 8px; font-size: 14px; }
+        .url-input-group input:focus { outline: none; border-color: #4f46e5; }
+
+        .toast {
+            position: fixed; bottom: 24px; right: 24px; background: #1a1a2e; color: white;
+            padding: 14px 20px; border-radius: 10px; font-size: 14px; z-index: 200;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.2); display: none;
+        }
+        .toast.show { display: block; }
+        .toast.success { background: #10b981; }
+        .toast.error { background: #dc2626; }
+
+        .tabs { display: flex; gap: 0; margin-bottom: 20px; border-bottom: 1px solid #ddd; }
+        .tab { padding: 10px 20px; cursor: pointer; font-size: 14px; font-weight: 500; color: #888; border-bottom: 2px solid transparent; }
+        .tab:hover { color: #4f46e5; }
+        .tab.active { color: #4f46e5; border-bottom-color: #4f46e5; }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+
+        @media (max-width: 768px) {
+            .sidebar { display: none; }
+            .main { margin-left: 0; padding: 16px; }
+            .prop-grid { grid-template-columns: 1fr; }
+            .url-input-group { flex-direction: column; }
+        }
+    </style>
+</head>
+<body>
+
+<!-- Sidebar -->
+<div class="sidebar" id="sidebar">
+    <div class="logo"><span>Viewing</span>.One</div>
+    <div class="nav-item active" onclick="switchTab('listings')">📋 My Listings</div>
+    <div class="nav-item" onclick="switchTab('bookings')">📅 Bookings <span id="bookingBadgeSide" class="badge" style="display:none;">0</span></div>
+    <div class="nav-item" onclick="switchTab('slots')">⏰ Time Slots</div>
+    <div class="nav-item" onclick="switchTab('add')">➕ Add Listing</div>
+    <div class="nav-item" onclick="switchTab('profile')">👤 My Profile</div>
+    <div class="user-info" id="userInfo">
+        <strong id="userName">Agent</strong>
+        <span id="userEmail"></span>
+        <div style="margin-top:8px;"><a href="/logout" style="color:#dc2626;font-size:12px;text-decoration:none;" onclick="doLogout();return false;">Log out</a></div>
+    </div>
+</div>
+
+<!-- Main -->
+<div class="main">
+    <h1 class="page-title">Dashboard</h1>
+    <p class="page-subtitle" id="pageSubtitle">Manage your listings and bookings</p>
+    <a class="page-link" id="agentPageLink" href="#" target="_blank">🔗 viewing.one/<span id="agentSlug">...</span></a>
+
+    <!-- Tabs -->
+    <div class="tabs">
+        <div class="tab active" onclick="switchTab('listings')">📋 My Listings</div>
+        <div class="tab" onclick="switchTab('bookings')">📅 Bookings</div>
+        <div class="tab" onclick="switchTab('slots')">⏰ Time Slots</div>
+        <div class="tab" onclick="switchTab('add')">➕ Add Listing</div>
+    </div>
+
+    <!-- Listings Tab -->
+    <div class="tab-content active" id="tab-listings">
+        <div class="prop-grid" id="propsContainer">
+            <div class="empty-state" id="emptyProps">
+                <div class="icon">🏠</div>
+                <h3>No listings yet</h3>
+                <p style="color:#888;font-size:14px;">Add a listing by pasting a URL or sending an email.</p>
+                <button class="btn btn-primary" style="margin-top:12px;" onclick="switchTab('add')">Add your first listing</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bookings Tab -->
+    <div class="tab-content" id="tab-bookings">
+        <div class="card">
+            <h3>📅 Upcoming bookings <span id="bookingBadge" style="display:none;background:#dc2626;color:white;font-size:12px;padding:2px 8px;border-radius:10px;font-weight:600;margin-left:8px;">0</span></h3>
+            <div id="bookingsList">
+                <div class="empty-state" style="padding:20px;">
+                    <p style="color:#888;">No bookings yet. Share your page to start receiving them.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Slots Tab -->
+    <div class="tab-content" id="tab-slots">
+        <div class="card">
+            <h3>⏰ Viewing Time Slots</h3>
+            <p style="font-size:14px;color:#888;margin-bottom:12px;">Manage viewing availability per property. Past slots are hidden automatically.</p>
+            <div id="timeSlotsContainer">
+                <div class="empty-state"><p style="color:#888;">Loading properties...</p></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Profile Tab -->
+    <div class="tab-content" id="tab-profile">
+        <div class="card">
+            <h3>👤 Your Profile</h3>
+            <p style="font-size:14px;color:#888;margin-bottom:16px;">This info appears on your agent page at viewing.one/<span id="profileSlug">your-slug</span></p>
+            
+            <div style="display:flex;align-items:center;gap:20px;margin-bottom:20px;">
+                <div id="profileAvatarPreview" style="width:80px;height:80px;border-radius:50%;background:#eef2ff;display:flex;align-items:center;justify-content:center;font-size:28px;color:#4f46e5;overflow:hidden;flex-shrink:0;">👤</div>
+                <div>
+                    <label for="profilePicUpload" class="btn btn-outline btn-sm" style="cursor:pointer;">📷 Upload Photo</label>
+                    <input type="file" id="profilePicUpload" accept="image/*" style="display:none;" onchange="uploadProfilePic(event)">
+                    <p style="font-size:12px;color:#999;margin-top:4px;">JPG, PNG. Max 2MB.</p>
+                </div>
+            </div>
+
+            <div class="form-row" style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+                <div class="form-group">
+                    <label>Name</label>
+                    <input type="text" id="profileName" class="profile-input">
+                </div>
+                <div class="form-group">
+                    <label>Phone</label>
+                    <input type="tel" id="profilePhone" class="profile-input" placeholder="+27 82 000 0000">
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label>Tagline</label>
+                <input type="text" id="profileTagline" class="profile-input" placeholder="Your specialty or slogan">
+            </div>
+            <div class="form-group">
+                <label>Company / Brand name</label>
+                <input type="text" id="profileCompany" class="profile-input">
+            </div>
+
+            <h4 style="font-size:14px;margin:20px 0 10px;">🎨 Brand Colors</h4>
+            <div class="form-row" style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;">
+                <div class="form-group">
+                    <label>Primary</label>
+                    <input type="color" id="profilePrimaryColor" class="profile-input-color" value="#1a73e8">
+                </div>
+                <div class="form-group">
+                    <label>Secondary</label>
+                    <input type="color" id="profileSecondaryColor" class="profile-input-color" value="#2c3e50">
+                </div>
+                <div class="form-group">
+                    <label>Accent</label>
+                    <input type="color" id="profileAccentColor" class="profile-input-color" value="#e74c3c">
+                </div>
+            </div>
+
+            <div class="btn-row" style="margin-top:20px;display:flex;gap:8px;">
+                <button class="btn btn-primary" onclick="saveProfile()">💾 Save Profile</button>
+                <button class="btn btn-outline" onclick="loadProfile()">↻ Reset</button>
+            </div>
+            <div id="profileSaveMsg" style="font-size:13px;margin-top:8px;"></div>
+        </div>
+
+        <div class="card">
+            <h3>🔒 Change Password</h3>
+            <div class="form-group">
+                <label>Current password</label>
+                <input type="password" id="currentPassword" class="profile-input">
+            </div>
+            <div class="form-row" style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+                <div class="form-group">
+                    <label>New password</label>
+                    <input type="password" id="newPassword" class="profile-input" placeholder="Min 8 chars + number">
+                </div>
+                <div class="form-group">
+                    <label>Confirm</label>
+                    <input type="password" id="confirmPassword" class="profile-input">
+                </div>
+            </div>
+            <div id="pwStrength" style="font-size:12px;margin-top:-8px;margin-bottom:12px;height:18px;"></div>
+            <button class="btn btn-outline" onclick="changePassword()">🔑 Update Password</button>
+            <div id="pwChangeMsg" style="font-size:13px;margin-top:8px;"></div>
+        </div>
+
+        <div class="card">
+            <h3>🔗 Your Agent Page</h3>
+            <p style="font-size:14px;color:#888;margin-bottom:12px;">Share this link with potential buyers:</p>
+            <div class="url-input-group">
+                <input type="text" id="profilePageUrl" readonly onclick="this.select()" style="cursor:pointer;">
+                <button class="btn btn-primary btn-sm" onclick="copyProfileUrl()">📋 Copy</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add Listing Tab -->
+    <div class="tab-content" id="tab-add">
+        <div class="card">
+            <h3>🔗 Add by URL</h3>
+            <p style="font-size:14px;color:#888;margin-bottom:12px;">Paste a Private Property listing URL</p>
+            <div class="url-input-group">
+                <input type="url" id="manualUrl" placeholder="https://www.privateproperty.co.za/for-sale/..." style="flex:1;padding:10px 14px;border:1px solid #ddd;border-radius:8px;font-size:14px;">
+                <button class="btn btn-primary" onclick="addListingByUrl()">Add listing</button>
+            </div>
+            <div id="urlResult" style="margin-top:8px;font-size:13px;"></div>
+        </div>
+
+        <div class="card">
+            <h3>✏️ Add manually</h3>
+            <p style="font-size:14px;color:#888;margin-bottom:12px;">Enter listing details by hand</p>
+            <div style="display:grid;gap:10px;">
+                <input type="text" id="manualTitle" placeholder="Property title (e.g. 3 Bedroom House in Gardens)" style="padding:10px 14px;border:1px solid #ddd;border-radius:8px;font-size:14px;">
+                <input type="text" id="manualPrice" placeholder="Price (e.g. R 2,500,000)" style="padding:10px 14px;border:1px solid #ddd;border-radius:8px;font-size:14px;">
+                <input type="text" id="manualLocation" placeholder="Location (e.g. Gardens, Cape Town)" style="padding:10px 14px;border:1px solid #ddd;border-radius:8px;font-size:14px;">
+                <div style="display:flex;gap:8px;align-items:center;">
+                    <label for="manualImageUpload" style="flex:1;padding:10px 14px;border:2px dashed #ddd;border-radius:8px;font-size:14px;color:#999;cursor:pointer;text-align:center;" id="manualImageLabel">📷 Click to upload property photo</label>
+                    <input type="file" id="manualImageUpload" accept="image/*" style="display:none;" onchange="handleManualImageSelect(event)">
+                    <button onclick="document.getElementById('manualImageUpload').click()" style="padding:10px 16px;background:#f8f9fa;border:1px solid #ddd;border-radius:8px;cursor:pointer;font-size:13px;">Browse</button>
+                </div>
+                <div id="manualImagePreview" style="display:none;margin-top:-4px;">
+                    <img id="manualImagePreviewImg" style="max-width:100%;max-height:120px;border-radius:6px;">
+                    <button onclick="removeManualImage()" style="background:none;border:none;color:#e74c3c;cursor:pointer;font-size:12px;margin-left:8px;">✕ Remove</button>
+                </div>
+                <button class="btn btn-primary" onclick="addListingManually()">Add listing</button>
+            </div>
+            <div id="manualResult" style="margin-top:8px;font-size:13px;"></div>
+        </div>
+
+        <div class="card">
+            <h3>📧 Add by email</h3>
+            <div style="font-size:14px;color:#888;">
+                <p style="margin-bottom:8px;">Forward listing emails from any of these to <strong>listings@viewing.one</strong>:</p>
+                <ul style="padding-left:20px;margin-bottom:12px;">
+                    <li>Private Property</li>
+                    <li>Private Property</li>
+                </ul>
+                <p>We extract photos, price, and details automatically.</p>
+            </div>
+        </div>
+
+        <div class="card">
+            <h3>📥 Pending from email</h3>
+            <div id="pendingEmails">
+                <p style="font-size:14px;color:#888;">No pending email submissions.</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Slot Modal -->
+<div class="modal-overlay" id="slotModal">
+    <div class="modal">
+        <h2>Add viewing slot</h2>
+        <div class="form-group">
+            <label>Day of week</label>
+            <select id="slotDay">
+                <option value="Monday">Monday</option>
+                <option value="Tuesday">Tuesday</option>
+                <option value="Wednesday">Wednesday</option>
+                <option value="Thursday">Thursday</option>
+                <option value="Friday">Friday</option>
+                <option value="Saturday">Saturday</option>
+            </select>
+        </div>
+        <div class="form-group">
+            <label>Start time</label>
+            <input type="time" id="slotStart" value="10:00">
+        </div>
+        <div class="form-group">
+            <label>End time</label>
+            <input type="time" id="slotEnd" value="12:00">
+        </div>
+        <div class="form-group">
+            <label>Max bookings per slot</label>
+            <input type="number" id="slotMax" value="1" min="1" max="20">
+        </div>
+        <div class="btn-row">
+            <button class="btn btn-outline" onclick="closeModal('slotModal')">Cancel</button>
+            <button class="btn btn-primary" onclick="saveSlot()">Save slot</button>
+        </div>
+    </div>
+</div>
+
+<!-- Add Time Slot Modal -->
+<div class="modal-overlay" id="addSlotModal">
+    <div class="modal" style="max-width:420px;">
+        <h2 id="addSlotTitle">Add Viewing Slot</h2>
+        <div class="form-group">
+            <label>Date</label>
+            <input type="date" id="slotDateInput">
+        </div>
+        <div class="form-group">
+            <label>Time</label>
+            <input type="time" id="slotTimeInput" value="10:00">
+        </div>
+        <div class="form-group">
+            <label>Max visitors per slot</label>
+            <input type="number" id="slotMaxInput" value="1" min="1" max="20">
+        </div>
+        <div class="btn-row">
+            <button class="btn btn-outline" onclick="closeModal('addSlotModal')">Cancel</button>
+            <button class="btn btn-primary" onclick="saveNewSlot()">Add Slot</button>
+        </div>
+    </div>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<script>
+var API = (window.location.hostname.includes('viewing.one') && !window.location.hostname.includes('vercel.app')) ? 'https://viewing-one.vercel.app' : '';
+
+// Accept token from URL parameter (e.g. after setup redirects with ?token=xxx)
+(function() {
+  var urlParams = new URLSearchParams(window.location.search);
+  var tokenParam = urlParams.get('token');
+  if (tokenParam) {
+    localStorage.setItem('token', tokenParam);
+    // Clean URL by removing the token parameter without reloading
+    var url = new URL(window.location);
+    url.searchParams.delete('token');
+    url.searchParams.delete('registered');
+    window.history.replaceState({}, '', url);
+  }
+})();
+
+var token = localStorage.getItem('token');
+var agent = JSON.parse(localStorage.getItem('agent') || '{}');
+
+function getToken() { return localStorage.getItem('token'); }
+var properties = [];
+var bookingSlots = [];
+var currentPropSlotId = null;
+
+// Auth check
+if (!token) { window.location.href = '/login.html'; }
+
+// Sidebar info
+document.getElementById('userName').textContent = agent.name || 'Agent';
+document.getElementById('userEmail').textContent = agent.email || '';
+var slug = agent.slug || '';
+if (!slug && agent._id) {
+  // Generate slug from name if missing
+  slug = (agent.name || 'agent').toLowerCase().replace(/[^a-z0-9\s-]/g, '').replace(/\s+/g, '-').replace(/-+/g, '-');
+}
+slug = slug || 'hilmar-samuels';
+document.getElementById('agentSlug').textContent = slug || '...';
+var linkEl = document.getElementById('agentPageLink');
+if (linkEl) {
+  linkEl.href = location.origin + '/' + slug;
+  linkEl.innerHTML = '🔗 ' + (location.hostname === 'viewing.one' ? '' : location.origin + '/') + slug;
+}
+// Also update profile page URL
+var ppu = document.getElementById('profilePageUrl');
+if (ppu) ppu.value = 'https://viewing.one/' + slug;
+var ps = document.getElementById('profileSlug');
+if (ps) ps.textContent = slug;
+
+function showToast(msg, type) {
+    var t = document.getElementById('toast');
+    t.textContent = msg;
+    t.className = 'toast show ' + (type || '');
+    setTimeout(function() { t.className = 'toast'; }, 3000);
+}
+
+function openModal(id) {
+    document.getElementById(id).classList.add('show');
+}
+
+function closeModal(id) {
+    document.getElementById(id).classList.remove('show');
+}
+
+function switchTab(name) {
+    document.querySelectorAll('.tab').forEach(function(t) { t.classList.remove('active'); });
+    document.querySelectorAll('.tab-content').forEach(function(t) { t.classList.remove('active'); });
+    document.querySelectorAll('.nav-item').forEach(function(t) { t.classList.remove('active'); });
+    
+    var tabEl = document.querySelector('[onclick="switchTab(\''+name+'\')"]');
+    if (tabEl) tabEl.classList.add('active');
+    
+    document.getElementById('tab-' + name).classList.add('active');
+    document.getElementById('pageSubtitle').textContent = 
+        name === 'listings' ? 'Manage your listings' :
+        name === 'bookings' ? 'View visitor bookings' :
+        name === 'slots' ? 'Set your viewing availability' :
+        name === 'profile' ? 'Edit your profile and brand settings' : 'Add a new listing';
+}
+
+function doLogout() {
+    localStorage.removeItem('token');
+    localStorage.removeItem('agent');
+    window.location.href = '/';
+}
+
+// --- Load data ---
+async function loadData() {
+    try {
+        var resp = await fetch(API + '/api/properties', {
+            headers: { 'Authorization': 'Bearer ' + getToken() }
+        });
+        var data = await resp.json();
+        if (data.success && data.properties && data.properties.length > 0) {
+            properties = data.properties;
+            renderProperties();
+        } else if (data.properties && data.properties.length === 0) {
+            // Cold-start instance returned 0 — keep existing data, just refresh bookings
+            console.log('Cold start detected (0 properties), keeping existing data');
+        } else {
+            // Fallback: try agent slug endpoint
+            var resp2 = await fetch(API + '/api/agents/' + slug);
+            var data2 = await resp2.json();
+            if (data2.properties && data2.properties.length > 0) {
+                properties = data2.properties;
+                renderProperties();
+            }
+        }
+        loadBookings();
+    } catch(e) {
+        console.error('Load error:', e);
+    }
+}
+
+
+
+async function confirmCancelBooking(propertyId, slotId, visitorEmail) {
+    if (!visitorEmail) {
+        alert('Cannot cancel - no email on record for this booking.');
+        return;
+    }
+    if (!confirm('Cancel this booking?')) return;
+    try {
+        var resp = await fetch(API + '/api/bookings/' + encodeURIComponent(propertyId) + '/' + encodeURIComponent(slotId) + '/' + encodeURIComponent(visitorEmail), {
+            method: 'DELETE',
+            headers: { 'Authorization': 'Bearer ' + getToken() }
+        });
+        var data = await resp.json();
+        if (data.success) {
+            alert('Booking cancelled');
+            loadBookings();
+        } else {
+            alert(data.message || 'Failed to cancel booking');
+        }
+    } catch(e) {
+        alert('Error: ' + e.message);
+    }
+}
+
+function setSlotForRequest(propertyId) {
+    switchTab('slots');
+    setTimeout(function() {
+        var el = document.getElementById('prop-slots-' + propertyId);
+        if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 300);
+    return false;
+}
+
+// --- Time Slots Management ---
+
+var slotPropId = null; // property id we're adding a slot for
+
+function loadTimeSlots() {
+    var container = document.getElementById('timeSlotsContainer');
+    if (!properties || properties.length === 0) {
+        container.innerHTML = '<div class="empty-state"><p style="color:#888;">No properties yet. Add listings first.</p></div>';
+        return;
+    }
+    
+    var html = '';
+    for (var i = 0; i < properties.length; i++) {
+        var p = properties[i];
+        var imgSrc = (p.images && p.images.length > 0) ? p.images[0] : null;
+        var slots = p.viewingSlots || p.slots || [];
+        var reqs = (p.viewingRequests || []);
+        
+        // Filter past slots (date + time already passed)
+        var now = new Date();
+        var activeSlots = [];
+        var pastSlots = [];
+        for (var si = 0; si < slots.length; si++) {
+            var slotDateTime = new Date(slots[si].date + 'T' + slots[si].time);
+            if (slotDateTime > now) {
+                activeSlots.push(slots[si]);
+            } else {
+                pastSlots.push(slots[si]);
+            }
+        }
+        activeSlots.sort(function(a, b) { return a.date.localeCompare(b.date) || a.time.localeCompare(b.time); });
+        
+        var pid = p._id || p.id;
+        html += '<div class="prop-slots-block" id="prop-slots-' + pid + '" style="border:1px solid #eef2ff;border-radius:12px;padding:16px;margin-bottom:16px;">';
+        html += '  <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px;">';
+        if (imgSrc) html += '    <img src="' + imgSrc + '" style="width:48px;height:48px;border-radius:8px;object-fit:cover;" alt="">';
+        html += '    <div style="flex:1;">';
+        html += '      <div style="font-weight:600;font-size:15px;">' + p.title + '</div>';
+        html += '      <div style="font-size:13px;color:#888;">' + (p.price || '') + (p.location ? ' &middot; ' + p.location : '') + '</div>';
+        html += '    </div>';
+        html += '    <button class="btn btn-primary btn-sm" onclick="openAddSlot(\'' + pid + '\')" style="white-space:nowrap;">+ Add Time</button>';
+        html += '  </div>';
+        
+        // Pending requests for this property
+        if (reqs && reqs.length > 0) {
+            html += '  <div style="background:#fef9e7;border:1px solid #f9e79f;border-radius:8px;padding:10px;margin-bottom:12px;">';
+            html += '    <div style="font-size:13px;font-weight:600;color:#b7950b;margin-bottom:6px;">⏳ ' + reqs.length + ' pending request(s) — no time set yet</div>';
+            for (var ri = 0; ri < reqs.length; ri++) {
+                html += '    <div style="font-size:13px;color:#888;margin-left:8px;">👤 ' + reqs[ri].visitorName + ' &mdash; 💬 ' + (reqs[ri].visitorWhatsApp || '—') + '</div>';
+            }
+            html += '  </div>';
+        }
+        
+        // Active slots
+        if (activeSlots.length > 0) {
+            html += '  <div style="font-size:13px;font-weight:500;color:#555;margin-bottom:8px;">Available slots (' + activeSlots.length + ')</div>';
+            html += '  <div style="display:flex;flex-wrap:wrap;gap:8px;">';
+            for (var si = 0; si < activeSlots.length; si++) {
+                var s = activeSlots[si];
+                var dateStr = new Date(s.date + 'T' + s.time).toLocaleDateString('en-ZA', { weekday: 'short', day: 'numeric', month: 'short' });
+                var bookedCount = (s.bookings || []).length;
+                html += '    <div class="slot-chip" style="display:inline-flex;align-items:center;gap:6px;background:#eef2ff;border:1px solid #dde4ff;border-radius:8px;padding:8px 12px;font-size:13px;">';
+                html += '      <span>' + dateStr + '</span>';
+                html += '      <span style="color:#666;">' + s.time + '</span>';
+                html += '      <span style="color:#888;font-size:12px;">(' + bookedCount + '/' + (s.maxBookings || 1) + ')' + '</span>';
+                html += '      <span onclick="deleteTimeSlot(\'' + pid + '\',\'' + s.id + '\')" style="cursor:pointer;color:#dc2626;font-size:16px;line-height:1;margin-left:4px;" title="Delete slot">&times;</span>';
+                html += '    </div>';
+            }
+            html += '  </div>';
+        } else {
+            html += '  <div style="font-size:13px;color:#aaa;">No upcoming slots. Click "+ Add Time" to set viewing times.</div>';
+        }
+        
+        // Past slots (collapsed)
+        if (pastSlots.length > 0) {
+            html += '  <details style="margin-top:10px;">';
+            html += '    <summary style="font-size:12px;color:#999;cursor:pointer;">' + pastSlots.length + ' past slot(s)</summary>';
+            html += '    <div style="margin-top:6px;display:flex;flex-wrap:wrap;gap:6px;">';
+            for (var si = 0; si < pastSlots.length; si++) {
+                var s = pastSlots[si];
+                var dateStr = new Date(s.date + 'T' + s.time).toLocaleDateString('en-ZA', { weekday: 'short', day: 'numeric', month: 'short' });
+                html += '      <span style="background:#f5f5f5;color:#aaa;border-radius:6px;padding:4px 10px;font-size:12px;text-decoration:line-through;">' + dateStr + ' ' + s.time + '</span>';
+            }
+            html += '    </div>';
+          html += '  </details>';
+        }
+        
+        html += '</div>';
+    }
+    
+    container.innerHTML = html;
+}
+
+function openAddSlot(propertyId) {
+    slotPropId = propertyId;
+    document.getElementById('addSlotTitle').textContent = 'Add Viewing Slot';
+    // Set default date to tomorrow
+    var tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    document.getElementById('slotDateInput').value = tomorrow.toISOString().split('T')[0];
+    document.getElementById('slotTimeInput').value = '10:00';
+    document.getElementById('slotMaxInput').value = 1;
+    openModal('addSlotModal');
+}
+
+async function saveNewSlot() {
+    var date = document.getElementById('slotDateInput').value;
+    var time = document.getElementById('slotTimeInput').value;
+    var maxBookings = parseInt(document.getElementById('slotMaxInput').value) || 1;
+    
+    if (!date || !time) {
+        showToast('Please pick a date and time', 'error');
+        return;
+    }
+    
+    // Validate date is in future
+    var slotDate = new Date(date + 'T' + time);
+    if (slotDate <= new Date()) {
+        showToast('Slot must be in the future', 'error');
+        return;
+    }
+    
+    try {
+        var resp = await fetch(API + '/api/properties/' + slotPropId + '/slots', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+            body: JSON.stringify({ date: date, time: time, maxBookings: maxBookings })
+        });
+        var data = await resp.json();
+        if (data.success) {
+            showToast('Slot added for ' + date + ' at ' + time);
+            closeModal('addSlotModal');
+            // Refresh data
+            await loadData();
+            loadTimeSlots();
+        } else {
+            showToast(data.message || 'Failed to add slot', 'error');
+        }
+    } catch(e) {
+        showToast('Error adding slot', 'error');
+        console.error(e);
+    }
+}
+
+async function deleteTimeSlot(propertyId, slotId) {
+    if (!confirm('Remove this viewing slot?')) return;
+    try {
+        var resp = await fetch(API + '/api/properties/' + propertyId + '/slots/' + slotId, {
+            method: 'DELETE',
+            headers: { 'Authorization': 'Bearer ' + token }
+        });
+        var data = await resp.json();
+        if (data.success) {
+            showToast('Slot removed');
+            await loadData();
+            loadTimeSlots();
+        } else {
+            showToast(data.message || 'Failed to remove slot', 'error');
+        }
+    } catch(e) {
+        showToast('Error removing slot', 'error');
+    }
+}
+
+// --- Profile Management ---
+async function loadProfile() {
+    var resp = await fetch(API + '/api/auth/me', {
+        headers: { 'Authorization': 'Bearer ' + getToken() }
+    });
+    var data = await resp.json();
+    if (!data.success || !data.agent) return;
+    var a = data.agent;
+    document.getElementById('profileName').value = a.name || '';
+    document.getElementById('profilePhone').value = a.phone || '';
+    document.getElementById('profileTagline').value = a.tagline || '';
+    document.getElementById('profileCompany').value = a.companyName || '';
+    document.getElementById('profilePrimaryColor').value = a.primaryColor || '#1a73e8';
+    document.getElementById('profileSecondaryColor').value = a.secondaryColor || '#2c3e50';
+    document.getElementById('profileAccentColor').value = a.accentColor || '#e74c3c';
+    document.getElementById('profileSlug').textContent = a.slug || '';
+    document.getElementById('profilePageUrl').value = 'https://viewing.one/' + (a.slug || '');
+    
+    // Avatar
+    if (a.logo) {
+        document.getElementById('profileAvatarPreview').innerHTML = '<img src="' + a.logo + '" style="width:80px;height:80px;border-radius:50%;object-fit:cover;">';
+    }
+}
+
+async function saveProfile() {
+    var msg = document.getElementById('profileSaveMsg');
+    msg.innerHTML = '⏳ Saving...';
+    var body = {
+        name: document.getElementById('profileName').value.trim(),
+        phone: document.getElementById('profilePhone').value.trim(),
+        tagline: document.getElementById('profileTagline').value.trim(),
+        companyName: document.getElementById('profileCompany').value.trim(),
+        primaryColor: document.getElementById('profilePrimaryColor').value,
+        secondaryColor: document.getElementById('profileSecondaryColor').value,
+        accentColor: document.getElementById('profileAccentColor').value
+    };
+    try {
+        var resp = await fetch(API + '/api/auth/me', {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + getToken() },
+            body: JSON.stringify(body)
+        });
+        var data = await resp.json();
+        msg.innerHTML = data.success ? '✅ Saved!' : '❌ ' + (data.message || 'Failed');
+        if (data.success) setTimeout(function(){ msg.innerHTML = ''; }, 3000);
+    } catch(e) {
+        msg.innerHTML = '❌ Error: ' + e.message;
+    }
+}
+
+function uploadProfilePic(event) {
+    var file = event.target.files[0];
+    if (!file) return;
+    if (file.size > 2 * 1024 * 1024) {
+        showToast('Image too large. Max 2MB.', 'error');
+        return;
+    }
+    var reader = new FileReader();
+    reader.onload = async function(e) {
+        var base64 = e.target.result;
+        var msg = document.getElementById('profileSaveMsg');
+        msg.innerHTML = '⏳ Uploading...';
+        try {
+            var resp = await fetch(API + '/api/auth/me/logo', {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + getToken() },
+                body: JSON.stringify({ logo: base64 })
+            });
+            var data = await resp.json();
+            if (data.success) {
+                msg.innerHTML = '✅ Photo uploaded!';
+                document.getElementById('profileAvatarPreview').innerHTML = '<img src="' + base64 + '" style="width:80px;height:80px;border-radius:50%;object-fit:cover;">';
+                setTimeout(function(){ msg.innerHTML = ''; }, 3000);
+            } else {
+                msg.innerHTML = '❌ ' + (data.message || 'Upload failed');
+            }
+        } catch(err) {
+            msg.innerHTML = '❌ Error: ' + err.message;
+        }
+    };
+    reader.readAsDataURL(file);
+}
+
+function changePassword() {
+    var current = document.getElementById('currentPassword').value;
+    var newPw = document.getElementById('newPassword').value;
+    var confirm = document.getElementById('confirmPassword').value;
+    var msg = document.getElementById('pwChangeMsg');
+    
+    if (!current) { msg.innerHTML = '❌ Enter current password'; return; }
+    if (newPw.length < 8) { msg.innerHTML = '❌ New password must be at least 8 characters'; return; }
+    if (!/[A-Z]/.test(newPw) || !/[0-9]/.test(newPw)) { msg.innerHTML = '❌ New password must include an uppercase letter and a number'; return; }
+    if (newPw !== confirm) { msg.innerHTML = '❌ Passwords don\'t match'; return; }
+    
+    msg.innerHTML = '⏳ Updating...';
+    fetch(API + '/api/auth/password', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + getToken() },
+        body: JSON.stringify({ currentPassword: current, newPassword: newPw })
+    }).then(function(r){return r.json();}).then(function(data){
+        msg.innerHTML = data.success ? '✅ Password updated!' : '❌ ' + (data.message || 'Failed');
+        if (data.success) {
+            document.getElementById('currentPassword').value = '';
+            document.getElementById('newPassword').value = '';
+            document.getElementById('confirmPassword').value = '';
+            setTimeout(function(){ msg.innerHTML = ''; }, 3000);
+        }
+    }).catch(function(err){
+        msg.innerHTML = '❌ Error: ' + err.message;
+    });
+}
+
+function copyProfileUrl() {
+    var input = document.getElementById('profilePageUrl');
+    input.select();
+    navigator.clipboard.writeText(input.value).then(function(){
+        showToast('URL copied!');
+    }).catch(function(){});
+}
+
+// Password strength indicator
+function checkPasswordStrength(pw) {
+    var el = document.getElementById('pwStrength');
+    if (!pw) { el.innerHTML = ''; return; }
+    var score = 0;
+    if (pw.length >= 8) score++;
+    if (pw.length >= 12) score++;
+    if (/[A-Z]/.test(pw)) score++;
+    if (/[0-9]/.test(pw)) score++;
+    if (/[^a-zA-Z0-9]/.test(pw)) score++;
+    var labels = ['Very weak', 'Weak', 'Fair', 'Good', 'Strong'];
+    var colors = ['#dc2626','#f59e0b','#facc15','#10b981','#059669'];
+    el.innerHTML = 'Strength: <span style="color:' + colors[Math.min(score,4)] + ';font-weight:600;">' + labels[Math.min(score,4)] + '</span>';
+}
+
+document.addEventListener('DOMContentLoaded', function(){
+    var pwInput = document.getElementById('newPassword');
+    if (pwInput) {
+        pwInput.addEventListener('input', function(){
+            checkPasswordStrength(this.value);
+        });
+    }
+});
+
+function renderProperties() {
+    var container = document.getElementById('propsContainer');
+    
+    if (properties.length === 0) {
+        container.innerHTML = '<div class="empty-state"><div class="icon">🏠</div><h3>No listings yet</h3><p style="color:#888;font-size:14px;">Add a listing by pasting a URL or sending an email.</p><button class="btn btn-primary" style="margin-top:12px;" onclick="switchTab(\'add\')">Add your first listing</button></div>';
+        return;
+    }
+    
+    var html = '';
+    for (var i = 0; i < properties.length; i++) {
+        var p = properties[i];
+        var imgSrc = (p.images && p.images.length > 0) ? p.images[0] : null;
+        var beds = p.bedrooms || null;
+        var baths = p.bathrooms || null;
+        var slotsCount = (p.slots || []).length;
+        
+        html += '<div class="prop-card">';
+        html += '  <div class="img-wrap">';
+        if (imgSrc && imgSrc.url) {
+            html += '<img src="' + imgSrc.url + '" alt="' + (p.title || 'Property') + '" loading="lazy">';
+        } else if (typeof imgSrc === 'string') {
+            html += '<img src="' + imgSrc + '" alt="' + (p.title || 'Property') + '" loading="lazy">';
+        } else {
+            html += '<span class="no-img">No image</span>';
+        }
+        html += '  </div>';
+        html += '  <div class="body">';
+        html += '    <div class="title">' + (p.title || 'Untitled') + '</div>';
+        html += '    <div class="price">' + (p.price || 'Price on request') + '</div>';
+        if (beds || baths) {
+          html += '    <div class="meta">' + (beds ? beds + ' bed' : '') + (beds && baths ? ' · ' : '') + (baths ? baths + ' bath' : '') + '</div>';
+        }
+        html += '    <div class="actions">';
+        html += '      <button class="btn btn-sm btn-outline" onclick="manageSlots(\'' + (p.id||p._id) + '\',\'' + (p.title||'').replace(/'/g,"\\'") + '\')">⏰ ' + slotsCount + ' slots</button>';
+        html += '      <button class="btn btn-sm btn-danger" onclick="deleteProperty(\'' + (p.id||p._id) + '\')">✕ Delete</button>';
+        html += '    </div>';
+        html += '  </div>';
+        html += '</div>';
+    }
+    container.innerHTML = html;
+}
+
+// --- Manage slots ---
+function manageSlots(propId, title) {
+    currentPropSlotId = propId;
+    document.getElementById('propSlotTitle').textContent = 'Slots for ' + title.slice(0, 40);
+    
+    var prop = properties.find(function(p) { return p._id === propId || p.id === propId; });
+    var slots = (prop && prop.slots) || [];
+    
+    var html = '';
+    if (slots.length === 0) {
+        html += '<p style="font-size:14px;color:#888;">No slots configured. Add one below.</p>';
+    } else {
+        for (var i = 0; i < slots.length; i++) {
+            var s = slots[i];
+            html += '<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid #eef2ff;">';
+            html += '  <span>' + s.day + ' ' + s.time + ' <span class="badge badge-green">max ' + (s.maxBookings || 1) + '</span></span>';
+            html += '  <button class="btn btn-sm btn-danger" onclick="removeSlot(\'' + propId + '\',\'' + (s._id || s.id || '') + '\')">✕</button>';
+            html += '</div>';
+        }
+    }
+    document.getElementById('propSlotList').innerHTML = html;
+    document.getElementById('propSlotModal').classList.add('show');
+}
+
+async function savePropSlot() {
+    var day = document.getElementById('propSlotDay').value;
+    var time = document.getElementById('propSlotTime').value;
+    var max = parseInt(document.getElementById('propSlotMax').value) || 1;
+    
+    try {
+        var resp = await fetch(API + '/api/properties/' + currentPropSlotId + '/slots', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+            body: JSON.stringify({ day: day, time: time, maxBookings: max })
+        });
+        var data = await resp.json();
+        if (data.success) {
+            showToast('Slot added!', 'success');
+            loadData();
+            closeModal('propSlotModal');
+        } else {
+            showToast(data.message || 'Failed to add slot', 'error');
+        }
+    } catch(e) {
+        showToast('Error: ' + e.message, 'error');
+    }
+}
+
+async function removeSlot(propId, slotId) {
+    if (!slotId) return;
+    try {
+        var resp = await fetch(API + '/api/properties/' + propId + '/slots/' + slotId, {
+            method: 'DELETE',
+            headers: { 'Authorization': 'Bearer ' + token }
+        });
+        var data = await resp.json();
+        if (data.success) {
+            showToast('Slot removed', 'success');
+            loadData();
+            manageSlots(propId, properties.find(function(p){return (p._id||p.id)===propId})?.title || '');
+        }
+    } catch(e) {
+        showToast('Error: ' + e.message, 'error');
+    }
+}
+
+// --- Delete property ---
+async function deleteProperty(propId) {
+    if (!confirm('Are you sure you want to delete this listing?')) return;
+    try {
+        var res = await fetch(API + '/api/properties/' + propId, {
+            method: 'DELETE',
+            headers: { 'Authorization': 'Bearer ' + localStorage.getItem('token') }
+        });
+        var data = await res.json();
+        if (data.success) {
+            showToast('Listing deleted', 'success');
+            await loadData();
+        } else {
+            showToast('Delete failed: ' + data.message, 'error');
+        }
+    } catch(e) {
+        showToast('Error: ' + e.message, 'error');
+    }
+}
+
+// --- Add listing ---
+async function addListingByUrl() {
+    var urlInput = document.getElementById('manualUrl');
+    var url = urlInput.value.trim();
+    var resultEl = document.getElementById('urlResult');
+    
+    if (!url) {
+        resultEl.innerHTML = '<span style="color:#dc2626;">Please enter a URL</span>';
+        return;
+    }
+    
+    resultEl.innerHTML = 'Scraping listing details...';
+    
+    // Client-side scrape: fetch the page through a CORS proxy to extract metadata
+    var scrapedTitle = '';
+    var scrapedPrice = '';
+    var scrapedBeds = '';
+    var scrapedBaths = '';
+    var scrapedImage = '';
+    
+    try {
+        // Use a CORS proxy to fetch the PP page from the browser
+        var proxyUrl = 'https://corsproxy.io/?' + encodeURIComponent(url);
+        var pageResp = await fetch(proxyUrl);
+        var pageHtml = await pageResp.text();
+        
+        // Extract title from <title> tag
+        var titleMatch = pageHtml.match(/<title>([^<]+)<\/title>/i);
+        if (titleMatch) {
+            scrapedTitle = titleMatch[1].replace(/\|\s*T\d+\s*\|.*$/, '').replace(/^R[\d,\s]+\|\s*/, '').trim();
+        }
+        
+        // Extract price from og:title (first segment before |)
+        var ogMatch = pageHtml.match(/<meta\s+property="og:title"\s+content="([^"]+)"[^>]*>/i);
+        if (ogMatch) {
+            var ogParts = ogMatch[1].split('|');
+            scrapedPrice = ogParts[0].trim();
+            if (!scrapedTitle) scrapedTitle = ogParts.slice(1).join('|').replace(/\|\s*Private\s*Property\s*$/i, '').trim();
+        }
+        
+        // Extract bedrooms (from _specValue class which contains bed icons)
+        var bedMatch = pageHtml.match(/<span[^>]*_specValue[^>]*>\s*(\d+)\s*<\/span>/i);
+        if (bedMatch) scrapedBeds = bedMatch[1];
+        
+        // Extract image from og:image
+        var imgMatch = pageHtml.match(/<meta\s+property="og:image"\s+content="([^"]+)"[^>]*>/i);
+        if (imgMatch) scrapedImage = imgMatch[1];
+        
+        // Extract beds from JSON+LD
+        var jsonLdMatch = pageHtml.match(/<script\s+type="application\/ld\+json">([^<]+)<\/script>/i);
+        if (jsonLdMatch) {
+            try {
+                var jsonData = JSON.parse(jsonLdMatch[1]);
+                if (jsonData.bedroom && !scrapedBeds) scrapedBeds = jsonData.bedroom;
+                if (jsonData.bathroom && !scrapedBaths) scrapedBaths = jsonData.bathroom;
+            } catch(e) {}
+        }
+    } catch(scrapeErr) {
+        console.log('Scrape failed, creating without details:', scrapeErr.message);
+    }
+    
+    try {
+        var resp = await fetch(API + '/api/properties', {
+            method: 'POST',
+            headers: { 
+                'Content-Type': 'application/json',
+                'Authorization': 'Bearer ' + (localStorage.getItem('token') || '')
+            },
+            body: JSON.stringify({ 
+                sourceUrl: url,
+                title: scrapedTitle || undefined,
+                price: scrapedPrice || undefined,
+                bedrooms: scrapedBeds ? parseInt(scrapedBeds) : undefined,
+                bathrooms: scrapedBaths ? parseInt(scrapedBaths) : undefined,
+                images: scrapedImage ? [{ url: scrapedImage }] : undefined
+            })
+        });
+        var data = await resp.json();
+        
+        if (data.success) {
+            resultEl.innerHTML = '<span style="color:#10b981;">✅ Listing added! <a href="/' + slug + '" target="_blank">View page</a></span>';
+            urlInput.value = '';
+            loadData();
+        } else {
+            resultEl.innerHTML = '<span style="color:#dc2626;">Failed: ' + (data.message || 'Unknown error') + '</span>';
+        }
+    } catch(e) {
+        resultEl.innerHTML = '<span style="color:#dc2626;">Error: ' + e.message + '</span>';
+    }
+}
+
+// --- Manual add ---
+// Manual image upload state
+var _manualImageBase64 = null;
+var _manualImageFileName = null;
+
+function handleManualImageSelect(event) {
+    var file = event.target.files && event.target.files[0];
+    if (!file) return;
+    
+    if (file.size > 5 * 1024 * 1024) {
+        alert('Image too large. Max 5MB.');
+        return;
+    }
+    
+    _manualImageFileName = file.name;
+    var reader = new FileReader();
+    reader.onload = function(e) {
+        _manualImageBase64 = e.target.result;
+        var preview = document.getElementById('manualImagePreview');
+        var img = document.getElementById('manualImagePreviewImg');
+        img.src = _manualImageBase64;
+        preview.style.display = 'block';
+        document.getElementById('manualImageLabel').textContent = '✅ ' + file.name;
+    };
+    reader.readAsDataURL(file);
+}
+
+function removeManualImage() {
+    _manualImageBase64 = null;
+    _manualImageFileName = null;
+    document.getElementById('manualImagePreview').style.display = 'none';
+    document.getElementById('manualImageUpload').value = '';
+    document.getElementById('manualImageLabel').textContent = '📷 Click to upload property photo';
+}
+
+async function addListingManually() {
+    var title = document.getElementById('manualTitle').value.trim();
+    var price = document.getElementById('manualPrice').value.trim();
+    var location = document.getElementById('manualLocation').value.trim();
+    var resultEl = document.getElementById('manualResult');
+    
+    if (!title) {
+        resultEl.innerHTML = '<span style="color:#dc2626;">Title is required</span>';
+        return;
+    }
+    
+    resultEl.innerHTML = 'Adding...';
+    
+    try {
+        var body = {
+            title: title,
+            price: price,
+            location: location,
+            images: _manualImageBase64 ? [{ url: _manualImageBase64 }] : []
+        };
+        
+        var resp = await fetch(API + '/api/properties', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': 'Bearer ' + localStorage.getItem('token')
+            },
+            body: JSON.stringify(body)
+        });
+        var data = await resp.json();
+        
+        if (data.success) {
+            resultEl.innerHTML = '<span style="color:#10b981;">✅ Listing added!</span>';
+            document.getElementById('manualTitle').value = '';
+            document.getElementById('manualPrice').value = '';
+            document.getElementById('manualLocation').value = '';
+            removeManualImage();
+            loadData();
+        } else {
+            resultEl.innerHTML = '<span style="color:#dc2626;">Failed: ' + (data.message || 'Unknown error') + '</span>';
+        }
+    } catch(e) {
+        resultEl.innerHTML = '<span style="color:#dc2626;">Error: ' + e.message + '</span>';
+    }
+}
+
+// --- Load bookings (grouped by property, collapsible) ---
+var _openGroups = {};
+
+function toggleGroup(propId) {
+  _openGroups[propId] = !_openGroups[propId];
+  renderBookings();
+}
+
+function renderBookings() {
+  var list = document.getElementById('bookingsList');
+  var badge = document.getElementById('bookingBadge');
+  var groups = window.__groupedBookings || {};
+  var keys = Object.keys(groups);
+  
+  if (keys.length === 0) {
+    list.innerHTML = '<div class="empty-state" style="padding:20px;"><p style="color:#888;">No bookings yet. Share your page to start receiving them.</p></div>';
+    badge.style.display = 'none';
+    return;
+  }
+  
+  var total = 0;
+  var html = '';
+  for (var g = 0; g < keys.length; g++) {
+    var propId = keys[g];
+    var group = groups[propId];
+    var open = _openGroups[propId] === true;
+    var count = group.bookings.length;
+    total += count;
+    
+    // Property header
+    html += '<div style="margin-bottom:8px;border:1px solid #e0e7ff;border-radius:10px;overflow:hidden;">';
+    html += '  <div onclick="toggleGroup(\'' + propId + '\')" style="cursor:pointer;display:flex;align-items:center;gap:10px;padding:14px 16px;background:' + (open ? '#eef2ff' : '#f8f9ff') + ';border-bottom:' + (open ? '1px solid #e0e7ff' : 'transparent') + ';">';
+    if (group.image) {
+      html += '    <img src="' + group.image + '" style="width:40px;height:40px;border-radius:6px;object-fit:cover;flex-shrink:0;" onerror="this.style.display=\'none\'">';
+    }
+    html += '    <div style="flex:1;">';
+    html += '      <div style="font-weight:600;font-size:15px;">' + group.title + '</div>';
+    html += '      <div style="font-size:12px;color:#666;">' + count + ' booking' + (count !== 1 ? 's' : '') + '</div>';
+    html += '    </div>';
+    html += '    <span style="font-size:18px;color:#6366f1;transition:transform 0.2s;transform:' + (open ? 'rotate(180deg)' : 'rotate(0deg)') + ';">▼</span>';
+    html += '  </div>';
+    
+    if (open) {
+      html += '  <div style="padding:4px 16px 12px;">';
+      for (var b = 0; b < group.bookings.length; b++) {
+        var bk = group.bookings[b];
+        var date = new Date(bk.bookedAt || bk.slotDate);
+        var dateStr = date.toLocaleDateString('en-ZA', { weekday: 'short', day: 'numeric', month: 'short' });
+        var isReq = bk.isRequest || false;
+        html += '    <div style="padding:12px 0;border-bottom:' + (b < group.bookings.length - 1 ? '1px solid #f0f0f0' : 'none') + ';">';
+        html += '      <div style="display:flex;justify-content:space-between;align-items:flex-start;">';
+        html += '        <div>';
+        html += '          <div style="font-weight:600;font-size:14px;">' + (bk.visitorName || 'Unknown') + '</div>';
+        if (isReq) {
+          html += '          <div style="font-size:13px;color:#e67e22;">⏳ Awaiting time arrangement</div>';
+        } else {
+          html += '          <div style="font-size:13px;color:#888;">' + (bk.slotDate || '') + ' at ' + (bk.slotTime || '') + '</div>';
+        }
+        html += '        </div>';
+        html += '        <div style="text-align:right;font-size:13px;">';
+        var wa = (bk.visitorWhatsApp || '').replace(/[^0-9]/g,'');
+        if (wa) html += '          <a href="https://wa.me/' + wa + '" target="_blank" style="color:#25D366;text-decoration:none;">📱 ' + (bk.visitorWhatsApp || '') + '</a><br>';
+        if (bk.visitorEmail) html += '          <span style="color:#888;font-size:12px;">' + bk.visitorEmail + '</span><br>';
+        html += '          <span style="color:#aaa;font-size:11px;">' + dateStr + '</span>';
+        html += '        </div>';
+        html += '      </div>';
+        html += '    </div>';
+      }
+      html += '  </div>';
+    }
+    html += '</div>';
+  }
+  
+  list.innerHTML = html;
+  badge.style.display = total > 0 ? 'inline' : 'none';
+  badge.textContent = total;
+  var sideBadge = document.getElementById('bookingBadgeSide');
+  if (sideBadge) {
+    sideBadge.style.display = total > 0 ? 'inline' : 'none';
+    sideBadge.textContent = total;
+  }
+}
+
+async function loadBookings() {
+    try {
+        var resp = await fetch(API + '/api/bookings/agent-bookings', {
+            headers: { 'Authorization': 'Bearer ' + localStorage.getItem('token') }
+        });
+        var data = await resp.json();
+        if (!data.success) return;
+        
+        if (data.bookings.length === 0) {
+          window.__groupedBookings = {};
+          renderBookings();
+          return;
+        }
+        
+        // Group bookings by property
+        var groups = {};
+        for (var i = 0; i < data.bookings.length; i++) {
+          var bk = data.bookings[i];
+          if (!groups[bk.propertyId]) {
+            groups[bk.propertyId] = {
+              title: bk.propertyTitle || 'Unknown Property',
+              image: bk.propertyImage || '',
+              bookings: []
+            };
+          }
+          groups[bk.propertyId].bookings.push(bk);
+        }
+        
+        // Sort properties by most recent booking
+        var sorted = {};
+        var keys = Object.keys(groups);
+        keys.sort(function(a, b) {
+          var aMax = groups[a].bookings.reduce(function(latest, bk) { var d = new Date(bk.bookedAt||0); return d > latest ? d : latest; }, new Date(0));
+          var bMax = groups[b].bookings.reduce(function(latest, bk) { var d = new Date(bk.bookedAt||0); return d > latest ? d : latest; }, new Date(0));
+          return bMax - aMax;
+        });
+        for (var k = 0; k < keys.length; k++) {
+          sorted[keys[k]] = groups[keys[k]];
+          // Sort bookings within each group: most recent first
+          sorted[keys[k]].bookings.sort(function(a, b) {
+            return new Date(b.bookedAt||0) - new Date(a.bookedAt||0);
+          });
+        }
+        
+        window.__groupedBookings = sorted;
+        renderBookings();
+    } catch(e) {
+        console.error('Load bookings error:', e);
+    }
+}
+
+// Init
+loadData();
+loadBookings();
+
+// Refresh time slots when tab is shown
+var switchingToSlots = false;
+var origSwitch = switchTab;
+switchTab = function(name) {
+    origSwitch(name);
+    if (name === 'slots') loadTimeSlots();
+};
+
+// Refresh every 30s
+setInterval(function() { loadData(); loadBookings(); }, 10000);
+</script>
+</body>
+</html>

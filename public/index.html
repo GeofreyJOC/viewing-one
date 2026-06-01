@@ -1,0 +1,1095 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Viewing.One — Premium Viewing Scheduling for Estate Agents</title>
+  <meta name="description" content="Get your own branded viewing booking page. Manage property viewings with ease. Trusted by estate agents across South Africa.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    /* ===== Reset & Base ===== */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      background-color: #0d0d0d;
+      color: #e8e4df;
+      line-height: 1.6;
+      overflow-x: hidden;
+    }
+    a { color: inherit; text-decoration: none; transition: color 0.3s ease; }
+    img { max-width: 100%; height: auto; display: block; }
+    ul { list-style: none; }
+
+    /* ===== Typography ===== */
+    h1, h2, h3, h4, .display-font {
+      font-family: 'Playfair Display', 'Times New Roman', serif;
+      font-weight: 600;
+      line-height: 1.2;
+    }
+
+    .section-tag {
+      display: inline-block;
+      font-family: 'Inter', sans-serif;
+      font-size: 0.75rem;
+      font-weight: 600;
+      letter-spacing: 3px;
+      text-transform: uppercase;
+      color: #c9a96e;
+      margin-bottom: 1rem;
+    }
+
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 0 1.5rem;
+    }
+
+    /* ===== Sticky Header ===== */
+    .site-header {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      z-index: 1000;
+      background: rgba(13, 13, 13, 0.92);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border-bottom: 1px solid rgba(201, 169, 110, 0.1);
+      transition: all 0.3s ease;
+      padding: 1.25rem 0;
+    }
+    .site-header.scrolled {
+      padding: 0.6rem 0;
+      background: rgba(13, 13, 13, 0.97);
+    }
+    .header-inner {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 0 1.5rem;
+    }
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+      font-family: 'Playfair Display', serif;
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: #e8e4df;
+    }
+    .logo-icon {
+      width: 36px;
+      height: 36px;
+      background: linear-gradient(135deg, #c9a96e, #a8853e);
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: 'Inter', sans-serif;
+      font-size: 0.85rem;
+      font-weight: 700;
+      color: #0d0d0d;
+    }
+    .nav-links {
+      display: flex;
+      align-items: center;
+      gap: 2rem;
+    }
+    .nav-links a {
+      font-size: 0.875rem;
+      font-weight: 500;
+      color: #a0988f;
+      transition: color 0.3s ease;
+    }
+    .nav-links a:hover { color: #c9a96e; }
+    .nav-cta {
+      display: inline-block;
+      padding: 0.5rem 1.25rem;
+      background: linear-gradient(135deg, #c9a96e, #b8962e);
+      color: #0d0d0d !important;
+      border-radius: 6px;
+      font-weight: 600 !important;
+      font-size: 0.875rem;
+      transition: all 0.3s ease;
+    }
+    .nav-cta:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 4px 20px rgba(201, 169, 110, 0.3);
+    }
+    .mobile-toggle {
+      display: none;
+      flex-direction: column;
+      gap: 5px;
+      cursor: pointer;
+      background: none;
+      border: none;
+      padding: 4px;
+    }
+    .mobile-toggle span {
+      width: 24px;
+      height: 2px;
+      background: #e8e4df;
+      border-radius: 2px;
+      transition: all 0.3s ease;
+    }
+
+    /* ===== Hero ===== */
+    .hero {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      position: relative;
+      padding: 8rem 0 4rem;
+      background: linear-gradient(180deg, #0d0d0d 0%, #1a1714 100%);
+      overflow: hidden;
+    }
+    .hero::before {
+      content: '';
+      position: absolute;
+      top: -40%;
+      right: -20%;
+      width: 80%;
+      height: 120%;
+      background: radial-gradient(ellipse at center, rgba(201, 169, 110, 0.06) 0%, transparent 70%);
+      pointer-events: none;
+    }
+    .hero::after {
+      content: '';
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, rgba(201, 169, 110, 0.2), transparent);
+    }
+    .hero-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 4rem;
+      align-items: center;
+      position: relative;
+      z-index: 1;
+    }
+    .hero-content { position: relative; }
+    .hero-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      background: rgba(201, 169, 110, 0.1);
+      border: 1px solid rgba(201, 169, 110, 0.2);
+      border-radius: 50px;
+      padding: 0.4rem 1rem 0.4rem 0.8rem;
+      font-size: 0.8rem;
+      color: #c9a96e;
+      margin-bottom: 1.5rem;
+    }
+    .hero-badge-dot {
+      width: 6px;
+      height: 6px;
+      background: #c9a96e;
+      border-radius: 50%;
+      animation: pulse-dot 2s ease-in-out infinite;
+    }
+    @keyframes pulse-dot {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.3; }
+    }
+    .hero h1 {
+      font-size: clamp(2.5rem, 5vw, 4rem);
+      color: #f0ebe4;
+      margin-bottom: 1.25rem;
+      letter-spacing: -0.02em;
+    }
+    .hero h1 .highlight {
+      color: #c9a96e;
+      font-style: italic;
+    }
+    .hero p {
+      font-size: 1.1rem;
+      color: #a0988f;
+      max-width: 520px;
+      margin-bottom: 2.5rem;
+      line-height: 1.7;
+    }
+    .hero-actions {
+      display: flex;
+      gap: 1rem;
+      flex-wrap: wrap;
+    }
+    .btn-primary {
+      display: inline-block;
+      padding: 0.9rem 2.25rem;
+      background: linear-gradient(135deg, #c9a96e, #b8962e);
+      color: #0d0d0d;
+      font-weight: 600;
+      font-size: 0.95rem;
+      border-radius: 8px;
+      border: none;
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
+    .btn-primary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 30px rgba(201, 169, 110, 0.3);
+    }
+    .btn-secondary {
+      display: inline-block;
+      padding: 0.9rem 2.25rem;
+      border: 1px solid rgba(201, 169, 110, 0.3);
+      color: #c9a96e;
+      font-weight: 500;
+      font-size: 0.95rem;
+      border-radius: 8px;
+      transition: all 0.3s ease;
+    }
+    .btn-secondary:hover {
+      border-color: #c9a96e;
+      background: rgba(201, 169, 110, 0.05);
+    }
+    .hero-image {
+      position: relative;
+      border-radius: 12px;
+      overflow: hidden;
+      box-shadow: 0 20px 80px rgba(0, 0, 0, 0.5);
+      aspect-ratio: 4/3;
+    }
+    .hero-image img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      transition: transform 0.6s ease;
+    }
+    .hero-image:hover img { transform: scale(1.03); }
+    .hero-image::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(180deg, transparent 60%, rgba(13, 13, 13, 0.4));
+      pointer-events: none;
+    }
+
+    .hero-trust {
+      margin-top: 3rem;
+      padding-top: 2rem;
+      border-top: 1px solid rgba(255, 255, 255, 0.06);
+    }
+    .hero-trust p {
+      font-size: 0.8rem;
+      text-transform: uppercase;
+      letter-spacing: 2px;
+      color: #6b6560;
+      margin-bottom: 1rem;
+    }
+    .trust-logos {
+      display: flex;
+      gap: 2.5rem;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+    .trust-logos span {
+      font-family: 'Playfair Display', serif;
+      font-size: 1.1rem;
+      color: #423b36;
+      font-style: italic;
+    }
+
+    /* ===== Sections Common ===== */
+    section {
+      padding: 6rem 0;
+    }
+    .section-header {
+      text-align: center;
+      margin-bottom: 4rem;
+    }
+    .section-header h2 {
+      font-size: clamp(2rem, 3.5vw, 2.75rem);
+      color: #f0ebe4;
+      margin-bottom: 0.75rem;
+    }
+    .section-header p {
+      font-size: 1.05rem;
+      color: #8a8278;
+      max-width: 620px;
+      margin: 0 auto;
+    }
+
+    /* ===== How It Works ===== */
+    .how-it-works { background: #11100e; }
+    .steps-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 2.5rem;
+    }
+    .step-card {
+      text-align: center;
+      padding: 2.5rem 1.5rem;
+      position: relative;
+    }
+    .step-number {
+      width: 60px;
+      height: 60px;
+      margin: 0 auto 1.5rem;
+      background: linear-gradient(135deg, rgba(201, 169, 110, 0.12), rgba(201, 169, 110, 0.05));
+      border: 1px solid rgba(201, 169, 110, 0.15);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: 'Playfair Display', serif;
+      font-size: 1.5rem;
+      font-weight: 600;
+      color: #c9a96e;
+      transition: all 0.4s ease;
+    }
+    .step-card:hover .step-number {
+      background: linear-gradient(135deg, rgba(201, 169, 110, 0.2), rgba(201, 169, 110, 0.08));
+      border-color: rgba(201, 169, 110, 0.3);
+      transform: scale(1.05);
+    }
+    .step-card h3 {
+      font-size: 1.2rem;
+      color: #f0ebe4;
+      margin-bottom: 0.75rem;
+    }
+    .step-card p {
+      font-size: 0.9rem;
+      color: #8a8278;
+      line-height: 1.7;
+    }
+    .step-connector {
+      display: none;
+    }
+
+    /* ===== Features ===== */
+    .features { background: #0d0d0d; }
+    .features-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 2rem;
+    }
+    .feature-card {
+      background: rgba(255, 255, 255, 0.02);
+      border: 1px solid rgba(255, 255, 255, 0.04);
+      border-radius: 12px;
+      padding: 2rem;
+      transition: all 0.3s ease;
+    }
+    .feature-card:hover {
+      background: rgba(201, 169, 110, 0.03);
+      border-color: rgba(201, 169, 110, 0.1);
+      transform: translateY(-2px);
+    }
+    .feature-icon {
+      width: 48px;
+      height: 48px;
+      background: linear-gradient(135deg, rgba(201, 169, 110, 0.12), rgba(201, 169, 110, 0.05));
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 1.25rem;
+      font-size: 1.3rem;
+    }
+    .feature-card h3 {
+      font-size: 1.05rem;
+      color: #f0ebe4;
+      margin-bottom: 0.5rem;
+    }
+    .feature-card p {
+      font-size: 0.875rem;
+      color: #8a8278;
+      line-height: 1.7;
+    }
+
+    /* ===== Video Section ===== */
+    .video-section {
+      background: #11100e;
+      text-align: center;
+    }
+    .video-placeholder {
+      max-width: 800px;
+      margin: 0 auto;
+      border-radius: 12px;
+      overflow: hidden;
+      position: relative;
+      aspect-ratio: 16/9;
+      background: linear-gradient(135deg, #1a1714, #0d0d0d);
+      border: 1px solid rgba(201, 169, 110, 0.1);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-direction: column;
+      gap: 1rem;
+    }
+    .video-placeholder .play-icon {
+      width: 70px;
+      height: 70px;
+      border: 2px solid rgba(201, 169, 110, 0.3);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.8rem;
+      color: #c9a96e;
+      transition: all 0.3s ease;
+    }
+    .video-placeholder:hover .play-icon {
+      border-color: #c9a96e;
+      background: rgba(201, 169, 110, 0.1);
+    }
+    .video-placeholder p {
+      font-size: 0.9rem;
+      color: #6b6560;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+    }
+
+    /* ===== Pricing ===== */
+    .pricing { background: #0d0d0d; }
+    .pricing-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 2rem;
+      max-width: 800px;
+      margin: 0 auto;
+    }
+    .pricing-card {
+      background: rgba(255, 255, 255, 0.02);
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      border-radius: 16px;
+      padding: 2.5rem 2rem;
+      text-align: center;
+      transition: all 0.3s ease;
+      position: relative;
+    }
+    .pricing-card:hover {
+      border-color: rgba(201, 169, 110, 0.2);
+      transform: translateY(-3px);
+    }
+    .pricing-card.featured {
+      background: linear-gradient(180deg, rgba(201, 169, 110, 0.06), rgba(201, 169, 110, 0.02));
+      border-color: rgba(201, 169, 110, 0.15);
+    }
+    .pricing-badge {
+      display: inline-block;
+      background: linear-gradient(135deg, #c9a96e, #b8962e);
+      color: #0d0d0d;
+      font-size: 0.7rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 1.5px;
+      padding: 0.35rem 0.85rem;
+      border-radius: 50px;
+      margin-bottom: 1.25rem;
+    }
+    .pricing-card h3 {
+      font-size: 1.3rem;
+      color: #f0ebe4;
+      margin-bottom: 0.5rem;
+    }
+    .pricing-card .subtitle {
+      font-size: 0.85rem;
+      color: #6b6560;
+      margin-bottom: 1.5rem;
+    }
+    .price {
+      font-family: 'Playfair Display', serif;
+      font-size: 3rem;
+      font-weight: 700;
+      color: #f0ebe4;
+      margin-bottom: 0.25rem;
+    }
+    .price span {
+      font-size: 1rem;
+      font-weight: 400;
+      color: #8a8278;
+      font-family: 'Inter', sans-serif;
+    }
+    .price-note {
+      font-size: 0.8rem;
+      color: #c9a96e;
+      margin-bottom: 1.75rem;
+    }
+    .pricing-features {
+      text-align: left;
+      margin-bottom: 2rem;
+    }
+    .pricing-features li {
+      padding: 0.6rem 0;
+      font-size: 0.875rem;
+      color: #a0988f;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+    .pricing-features li:last-child { border-bottom: none; }
+    .pricing-features li .check {
+      color: #c9a96e;
+      font-weight: 700;
+      flex-shrink: 0;
+    }
+    .pricing-features li .cross {
+      color: #4a443e;
+      font-weight: 700;
+      flex-shrink: 0;
+    }
+
+    /* ===== Testimonials ===== */
+    .testimonials {
+      background: #11100e;
+      text-align: center;
+    }
+    .testimonial-card {
+      max-width: 650px;
+      margin: 0 auto;
+      padding: 2rem;
+    }
+    .testimonial-stars {
+      color: #c9a96e;
+      font-size: 1.1rem;
+      letter-spacing: 3px;
+      margin-bottom: 1.5rem;
+    }
+    .testimonial-card blockquote {
+      font-family: 'Playfair Display', serif;
+      font-size: 1.3rem;
+      font-style: italic;
+      color: #d0cac2;
+      line-height: 1.7;
+      margin-bottom: 1.5rem;
+    }
+    .testimonial-author {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.75rem;
+    }
+    .testimonial-avatar {
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #c9a96e, #a8853e);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 600;
+      color: #0d0d0d;
+      font-size: 0.9rem;
+    }
+    .testimonial-author .name {
+      font-weight: 600;
+      color: #f0ebe4;
+      font-size: 0.9rem;
+    }
+    .testimonial-author .title {
+      font-size: 0.8rem;
+      color: #6b6560;
+    }
+
+    /* ===== CTA Section ===== */
+    .cta-section {
+      padding: 5rem 0;
+      text-align: center;
+      background: linear-gradient(180deg, #0d0d0d 0%, #11100e 100%);
+      position: relative;
+    }
+    .cta-section::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, rgba(201, 169, 110, 0.2), transparent);
+    }
+    .cta-section h2 {
+      font-size: clamp(1.8rem, 3vw, 2.5rem);
+      color: #f0ebe4;
+      margin-bottom: 0.75rem;
+    }
+    .cta-section p {
+      color: #8a8278;
+      max-width: 520px;
+      margin: 0 auto 2rem;
+      font-size: 1rem;
+    }
+
+    /* ===== Footer ===== */
+    .site-footer {
+      background: #0a0a0a;
+      border-top: 1px solid rgba(255, 255, 255, 0.04);
+      padding: 3rem 0 2rem;
+    }
+    .footer-grid {
+      display: grid;
+      grid-template-columns: 2fr 1fr 1fr 1fr;
+      gap: 2.5rem;
+      margin-bottom: 2.5rem;
+    }
+    .footer-brand .logo {
+      margin-bottom: 1rem;
+    }
+    .footer-brand p {
+      font-size: 0.85rem;
+      color: #6b6560;
+      line-height: 1.7;
+      max-width: 300px;
+    }
+    .footer-col h4 {
+      font-size: 0.8rem;
+      text-transform: uppercase;
+      letter-spacing: 2px;
+      color: #6b6560;
+      margin-bottom: 1.25rem;
+    }
+    .footer-col a {
+      display: block;
+      font-size: 0.875rem;
+      color: #a0988f;
+      margin-bottom: 0.7rem;
+      transition: color 0.3s ease;
+    }
+    .footer-col a:hover { color: #c9a96e; }
+    .footer-bottom {
+      padding-top: 1.5rem;
+      border-top: 1px solid rgba(255, 255, 255, 0.04);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 1rem;
+    }
+    .footer-bottom p {
+      font-size: 0.8rem;
+      color: #4a443e;
+    }
+    .footer-socials {
+      display: flex;
+      gap: 1rem;
+    }
+    .footer-socials a {
+      width: 36px;
+      height: 36px;
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.85rem;
+      color: #6b6560;
+      transition: all 0.3s ease;
+    }
+    .footer-socials a:hover {
+      border-color: rgba(201, 169, 110, 0.3);
+      color: #c9a96e;
+    }
+
+    /* ===== Intersection Observer Animations ===== */
+    .reveal {
+      opacity: 0;
+      transform: translateY(30px);
+      transition: opacity 0.7s ease, transform 0.7s ease;
+    }
+    .reveal.visible {
+      opacity: 1;
+      transform: translateY(0);
+    }
+    .reveal-delay-1 { transition-delay: 0.1s; }
+    .reveal-delay-2 { transition-delay: 0.2s; }
+    .reveal-delay-3 { transition-delay: 0.3s; }
+
+    /* ===== Responsive ===== */
+    @media (max-width: 900px) {
+      .hero-grid { grid-template-columns: 1fr; gap: 3rem; }
+      .hero-image { order: -1; }
+      .features-grid { grid-template-columns: 1fr; }
+      .pricing-grid { grid-template-columns: 1fr; max-width: 480px; }
+      .footer-grid { grid-template-columns: 1fr 1fr; }
+      .footer-brand { grid-column: 1 / -1; }
+    }
+
+    @media (max-width: 768px) {
+      .nav-links { display: none; }
+      .mobile-toggle { display: flex; }
+      .nav-links.open {
+        display: flex;
+        flex-direction: column;
+        position: absolute;
+        top: 100%;
+        left: 0;
+        right: 0;
+        background: rgba(13, 13, 13, 0.98);
+        border-bottom: 1px solid rgba(201, 169, 110, 0.1);
+        padding: 1.5rem;
+        gap: 1rem;
+        align-items: stretch;
+      }
+      .nav-links.open a { padding: 0.5rem 0; }
+      .nav-links.open .nav-cta { text-align: center; }
+      .steps-grid { grid-template-columns: 1fr; gap: 1.5rem; }
+      .hero { padding: 6rem 0 3rem; }
+      section { padding: 4rem 0; }
+      .pricing-card { padding: 2rem 1.5rem; }
+      .footer-grid { grid-template-columns: 1fr; }
+      .footer-bottom { flex-direction: column; text-align: center; }
+    }
+
+    @media (max-width: 480px) {
+      .hero-actions { flex-direction: column; }
+      .hero-actions .btn-primary,
+      .hero-actions .btn-secondary { text-align: center; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ===== HEADER ===== -->
+  <header class="site-header" id="site-header">
+    <div class="header-inner">
+      <a href="/" class="logo">
+        <span class="logo-icon">V1</span>
+        Viewing.One
+      </a>
+      <nav class="nav-links" id="nav-links">
+        <a href="#how-it-works">How It Works</a>
+        <a href="#features">Features</a>
+        <a href="#pricing">Pricing</a>
+        <a href="login.html">Log In</a>
+        <a href="register.html?plan=pro" class="nav-cta">Get Started</a>
+      </nav>
+      <button class="mobile-toggle" id="mobile-toggle" aria-label="Toggle menu">
+        <span></span><span></span><span></span>
+      </button>
+    </div>
+  </header>
+
+  <!-- ===== HERO ===== -->
+  <section class="hero" id="hero">
+    <div class="container">
+      <div class="hero-grid">
+        <div class="hero-content">
+          <div class="hero-badge">
+            <span class="hero-badge-dot"></span>
+            White-label viewing scheduling
+          </div>
+          <h1>
+            Your brand.<br>
+            <span class="highlight">Seamless viewings.</span>
+          </h1>
+          <p>
+            Get a professional, branded booking page at <strong>viewing.one/your-name</strong>. 
+            Let clients book property viewings in seconds — without the back-and-forth.
+          </p>
+          <div class="hero-actions">
+            <a href="register.html?plan=pro" class="btn-primary">Start Free Trial</a>
+            <a href="#how-it-works" class="btn-secondary">How It Works</a>
+          </div>
+          <div class="hero-trust">
+            <p>Trusted by estate agents across South Africa</p>
+            <div class="trust-logos">
+              <span>Luxury Estates SA</span>
+              <span>Prestige Properties</span>
+              <span>Elite Home Group</span>
+              <span>Prime Realty</span>
+            </div>
+          </div>
+        </div>
+        <div class="hero-image">
+          <img
+            src="https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=700&q=80"
+            alt="Elegant modern living room with city view"
+            loading="lazy"
+          >
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== HOW IT WORKS ===== -->
+  <section class="how-it-works" id="how-it-works">
+    <div class="container reveal">
+      <div class="section-header">
+        <span class="section-tag">Simple Process</span>
+        <h2>Three steps to start receiving bookings</h2>
+        <p>Get your branded viewing page live in minutes — no tech skills required.</p>
+      </div>
+      <div class="steps-grid">
+        <div class="step-card reveal reveal-delay-1">
+          <div class="step-number">01</div>
+          <h3>Create Your Profile</h3>
+          <p>Sign up and customise your branded page at viewing.one/your-name. Add your logo, contact details, and business info in under 2 minutes.</p>
+        </div>
+        <div class="step-card reveal reveal-delay-2">
+          <div class="step-number">02</div>
+          <h3>Add Your Listings</h3>
+          <p>Forward your listing emails or paste a property URL — we handle the rest. Each listing automatically gets its own booking slot.</p>
+        </div>
+        <div class="step-card reveal reveal-delay-3">
+          <div class="step-number">03</div>
+          <h3>Share &amp; Book</h3>
+          <p>Share your viewing.one link on WhatsApp, email, or social media. Visitors pick a time slot and you get instant notifications.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== FEATURES ===== -->
+  <section class="features" id="features">
+    <div class="container reveal">
+      <div class="section-header">
+        <span class="section-tag">Everything You Need</span>
+        <h2>Built for real estate professionals</h2>
+        <p>Stop juggling WhatsApp messages and calendar invites. Viewing.One does the heavy lifting.</p>
+      </div>
+      <div class="features-grid">
+        <div class="feature-card reveal reveal-delay-1">
+          <div class="feature-icon">🏠</div>
+          <h3>Branded Booking Page</h3>
+          <p>Your own white-label page at viewing.one/your-name. Keep your brand front and centre — no third-party logos or clutter.</p>
+        </div>
+        <div class="feature-card reveal reveal-delay-1">
+          <div class="feature-icon">📧</div>
+          <h3>Add by Email or URL</h3>
+          <p>Forward any listing email to your unique address and it appears automatically. Or paste a property URL — works with any major listings portal.</p>
+        </div>
+        <div class="feature-card reveal reveal-delay-2">
+          <div class="feature-icon">📅</div>
+          <h3>Smart Slot Management</h3>
+          <p>Set your available hours per property. Avoid double bookings. Pause, cancel, or reschedule slots with one click.</p>
+        </div>
+        <div class="feature-card reveal reveal-delay-2">
+          <div class="feature-icon">💬</div>
+          <h3>Instant Notifications</h3>
+          <p>Get alerted via WhatsApp and email the moment someone books. Visitors also receive automatic confirmations and reminders.</p>
+        </div>
+        <div class="feature-card reveal reveal-delay-3">
+          <div class="feature-icon">📊</div>
+          <h3>Viewing Analytics</h3>
+          <p>Track how many people view each listing, how many book, and conversion rates. Know exactly what's working.</p>
+        </div>
+        <div class="feature-card reveal reveal-delay-3">
+          <div class="feature-icon">🔗</div>
+          <h3>Share Anywhere</h3>
+          <p>One link. Share on WhatsApp, email, Instagram, Facebook, or your website. No app downloads, no login required for visitors.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== VIDEO ===== -->
+  <section class="video-section" id="video">
+    <div class="container reveal">
+      <div class="section-header">
+        <span class="section-tag">See It In Action</span>
+        <h2>Watch the explainer</h2>
+        <p>A quick walkthrough of how Viewing.One works.</p>
+      </div>
+      <div class="video-placeholder">
+        <div class="play-icon">▶</div>
+        <p>Coming Soon</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== PRICING ===== -->
+  <section id="pricing" style="padding:80px 24px;background:#0d0d0d;text-align:center;">
+  <div style="max-width:1100px;margin:0 auto;">
+    <h2 style="font-family:'Playfair Display',serif;font-size:2.5rem;color:#fff;margin-bottom:0.5rem;">Simple pricing</h2>
+    <p style="color:#888;font-size:1.05rem;margin-bottom:48px;">30-day free demo on every plan. No credit card required.</p>
+
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:24px;align-items:start;">
+
+      <!-- Pro Monthly -->
+      <div style="background:#1a1a1a;border-radius:16px;padding:40px 32px;text-align:left;border:1px solid #2a2a2a;">
+        <h3 style="color:#c9a96e;font-size:14px;font-weight:600;text-transform:uppercase;letter-spacing:2px;margin-bottom:4px;">Pro</h3>
+        <div style="font-family:'Playfair Display',serif;font-size:2.5rem;color:#fff;margin-bottom:4px;">R 200<span style="font-size:1rem;color:#888;font-family:Inter,sans-serif;">/month</span></div>
+        <p style="color:#888;font-size:13px;margin-bottom:20px;">30-day free demo included</p>
+        <ul style="list-style:none;padding:0;margin:0 0 24px;font-size:14px;">
+          <li style="padding:8px 0;border-bottom:1px solid #222;color:#ccc;">✓ Branded booking page</li>
+          <li style="padding:8px 0;border-bottom:1px solid #222;color:#ccc;">✓ Unlimited listings</li>
+          <li style="padding:8px 0;border-bottom:1px solid #222;color:#ccc;">✓ Email & URL listing import</li>
+          <li style="padding:8px 0;border-bottom:1px solid #222;color:#ccc;">✓ Booking slot management</li>
+          <li style="padding:8px 0;border-bottom:1px solid #222;color:#ccc;">✓ Lead qualification tools</li>
+          <li style="padding:8px 0;color:#ccc;">✓ Email support</li>
+        </ul>
+        <a href="register.html?plan=pro" style="display:block;background:#c9a96e;color:#0d0d0d;text-align:center;padding:14px;border-radius:10px;font-weight:600;text-decoration:none;">Start free demo</a>
+      </div>
+
+      <!-- Pro Annual -->
+      <div style="background:linear-gradient(180deg,#1a1a1a 0%,#222);border-radius:16px;padding:40px 32px;text-align:left;border:1px solid #c9a96e;position:relative;">
+        <div style="position:absolute;top:12px;right:12px;background:#c9a96e;color:#0d0d0d;font-size:11px;font-weight:700;padding:4px 12px;border-radius:20px;">Best value</div>
+        <h3 style="color:#c9a96e;font-size:14px;font-weight:600;text-transform:uppercase;letter-spacing:2px;margin-bottom:4px;">Pro Annual</h3>
+        <div style="font-family:'Playfair Display',serif;font-size:2.5rem;color:#fff;margin-bottom:4px;">R 2 000<span style="font-size:1rem;color:#888;font-family:Inter,sans-serif;">/year</span></div>
+        <p style="color:#10b981;font-size:13px;font-weight:500;margin-bottom:20px;">2 months free — save R 400</p>
+        <ul style="list-style:none;padding:0;margin:0 0 24px;font-size:14px;">
+          <li style="padding:8px 0;border-bottom:1px solid #222;color:#ccc;">✓ Everything in Pro Monthly</li>
+          <li style="padding:8px 0;border-bottom:1px solid #222;color:#ccc;">✓ 2 months free vs monthly</li>
+          <li style="padding:8px 0;border-bottom:1px solid #222;color:#ccc;">✓ Priority email support</li>
+          <li style="padding:8px 0;color:#ccc;">✓ Lock in the rate</li>
+        </ul>
+        <a href="register.html?plan=pro-annual" style="display:block;background:#fff;color:#0d0d0d;text-align:center;padding:14px;border-radius:10px;font-weight:600;text-decoration:none;">Purchase plan</a>
+      </div>
+
+      <!-- Pro+ Monthly -->
+      <div style="background:#1a1a1a;border-radius:16px;padding:40px 32px;text-align:left;border:1px solid #2a2a2a;">
+        <h3 style="color:#c9a96e;font-size:14px;font-weight:600;text-transform:uppercase;letter-spacing:2px;margin-bottom:4px;">Pro+</h3>
+        <div style="font-family:'Playfair Display',serif;font-size:2.5rem;color:#fff;margin-bottom:4px;">R 400<span style="font-size:1rem;color:#888;font-family:Inter,sans-serif;">/month</span></div>
+        <p style="color:#888;font-size:13px;margin-bottom:20px;">30-day free demo included</p>
+        <ul style="list-style:none;padding:0;margin:0 0 24px;font-size:14px;">
+          <li style="padding:8px 0;border-bottom:1px solid #222;color:#ccc;">✓ Everything in Pro</li>
+          <li style="padding:8px 0;border-bottom:1px solid #222;color:#ccc;">✓ <strong>Custom branding</strong> — logo, colours, fonts</li>
+          <li style="padding:8px 0;border-bottom:1px solid #222;color:#ccc;">✓ Custom domain (yourbrand.co.za)</li>
+          <li style="padding:8px 0;border-bottom:1px solid #222;color:#ccc;">✓ WhatsApp notifications</li>
+          <li style="padding:8px 0;color:#ccc;">✓ Priority support</li>
+        </ul>
+        <a href="register.html?plan=pro-plus" style="display:block;background:#fff;color:#0d0d0d;text-align:center;padding:14px;border-radius:10px;font-weight:600;text-decoration:none;">Start free demo</a>
+      </div>
+
+      <!-- Pro+ Annual -->
+      <div style="background:#1a1a1a;border-radius:16px;padding:40px 32px;text-align:left;border:1px solid #2a2a2a;">
+        <h3 style="color:#c9a96e;font-size:14px;font-weight:600;text-transform:uppercase;letter-spacing:2px;margin-bottom:4px;">Pro+ Annual</h3>
+        <div style="font-family:'Playfair Display',serif;font-size:2.5rem;color:#fff;margin-bottom:4px;">R 4 000<span style="font-size:1rem;color:#888;font-family:Inter,sans-serif;">/year</span></div>
+        <p style="color:#10b981;font-size:13px;font-weight:500;margin-bottom:20px;">2 months free — save R 800</p>
+        <ul style="list-style:none;padding:0;margin:0 0 24px;font-size:14px;">
+          <li style="padding:8px 0;border-bottom:1px solid #222;color:#ccc;">✓ Everything in Pro+ Monthly</li>
+          <li style="padding:8px 0;border-bottom:1px solid #222;color:#ccc;">✓ 2 months free vs monthly</li>
+          <li style="padding:8px 0;color:#ccc;">✓ Priority support + onboarding call</li>
+        </ul>
+        <a href="register.html?plan=pro-plus-annual" style="display:block;background:#fff;color:#0d0d0d;text-align:center;padding:14px;border-radius:10px;font-weight:600;text-decoration:none;">Purchase plan</a>
+      </div>
+
+    </div>
+
+    <p style="color:#666;font-size:13px;margin-top:32px;">All plans include a 30-day free demo. No credit card needed. Cancel anytime.</p>
+  </div>
+</section>
+
+  <!-- ===== TESTIMONIALS ===== -->
+  <section class="testimonials" id="testimonials">
+    <div class="container reveal">
+      <div class="section-header">
+        <span class="section-tag">What Agents Say</span>
+        <h2>Trusted by real estate professionals</h2>
+        <p>Hear from agents who have transformed their viewing scheduling.</p>
+      </div>
+      <div class="testimonial-card">
+        <div class="testimonial-stars">★★★★★</div>
+        <blockquote>
+          &ldquo;Since switching to Viewing.One, my phone hasn&rsquo;t stopped ringing. Clients love being able to book viewings directly &mdash; no more missed calls or double bookings. It&rsquo;s become essential to my business.&rdquo;
+        </blockquote>
+        <div class="testimonial-author">
+          <div class="testimonial-avatar">SM</div>
+          <div>
+            <div class="name">Sarah Moolman</div>
+            <div class="title">Property Specialist, Jawitz Properties</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== CTA ===== -->
+  <section class="cta-section">
+    <div class="container reveal">
+      <h2>Ready to simplify your viewings?</h2>
+      <p>Join hundreds of estate agents across South Africa. Get your branded page live in under 2 minutes.</p>
+      <a href="register.html?plan=pro" class="btn-primary">Start Your Free Trial</a>
+      <p style="font-size:0.8rem;color:#6b6560;margin-top:1rem;">No credit card required &middot; Cancel anytime</p>
+    </div>
+  </section>
+
+  <!-- ===== FOOTER ===== -->
+  <footer class="site-footer">
+    <div class="container">
+      <div class="footer-grid">
+        <div class="footer-brand">
+          <a href="/" class="logo">
+            <span class="logo-icon">V1</span>
+            Viewing.One
+          </a>
+          <p>White-label viewing scheduling for South African estate agents. Your brand, your page, seamless bookings.</p>
+        </div>
+        <div class="footer-col">
+          <h4>Product</h4>
+          <a href="#how-it-works">How It Works</a>
+          <a href="#features">Features</a>
+          <a href="#pricing">Pricing</a>
+          <a href="#video">Watch Demo</a>
+        </div>
+        <div class="footer-col">
+          <h4>Company</h4>
+          <a href="login.html">Log In</a>
+          <a href="register.html?plan=starter">Sign Up</a>
+          <a href="#">Contact Us</a>
+          <a href="#">Terms of Service</a>
+        </div>
+        <div class="footer-col">
+          <h4>Contact</h4>
+          <a href="#">info@viewing.one</a>
+          <a href="#">+27 87 551 0244</a>
+          <a href="#">Cape Town, South Africa</a>
+        </div>
+      </div>
+      <div class="footer-bottom">
+        <p>&copy; 2026 Viewing.One. All rights reserved.</p>
+        <div class="footer-socials">
+          <a href="#" aria-label="Instagram">IG</a>
+          <a href="#" aria-label="Facebook">FB</a>
+          <a href="#" aria-label="LinkedIn">LI</a>
+          <a href="#" aria-label="Twitter / X">X</a>
+        </div>
+      </div>
+    </div>
+  </footer>
+
+  <!-- ===== JAVASCRIPT ===== -->
+  <script>
+    // Mobile toggle
+    const toggle = document.getElementById('mobile-toggle');
+    const nav = document.getElementById('nav-links');
+    toggle.addEventListener('click', function() {
+      nav.classList.toggle('open');
+    });
+
+    // Close mobile nav on link click
+    nav.querySelectorAll('a').forEach(function(link) {
+      link.addEventListener('click', function() {
+        nav.classList.remove('open');
+      });
+    });
+
+    // Sticky header shrink on scroll
+    const header = document.getElementById('site-header');
+    window.addEventListener('scroll', function() {
+      if (window.scrollY > 80) {
+        header.classList.add('scrolled');
+      } else {
+        header.classList.remove('scrolled');
+      }
+    });
+
+    // Intersection Observer for reveal animations
+    const revealEls = document.querySelectorAll('.reveal');
+    const observer = new IntersectionObserver(function(entries) {
+      entries.forEach(function(entry) {
+        if (entry.isIntersecting) {
+          entry.target.classList.add('visible');
+          observer.unobserve(entry.target);
+        }
+      });
+    }, {
+      threshold: 0.1,
+      rootMargin: '0px 0px -50px 0px'
+    });
+    revealEls.forEach(function(el) {
+      observer.observe(el);
+    });
+  </script>
+</body>
+</html>
