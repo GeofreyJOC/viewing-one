@@ -46,16 +46,30 @@ router.post('/email-inbound', async (req, res) => {
       return res.json({ success: false, message: 'No sender email found' });
     }
 
-    // 1. FIND AGENT -- try MongoDB, then in-memory
+    // 1. FIND AGENT -- try Mongoose (getDb), then raw MongoDB, then in-memory
     let agent = null;
     
+    // Try Mongoose connection first (same one dashboard uses)
     try {
-      const mongo = await getMongoDb();
-      if (mongo) {
-        agent = await mongo.db.collection('agents').findOne({ email: email });
+      if (typeof global.getMongoDbPromise === 'function') {
+        const mongooseConn = await global.getMongoDbPromise();
+        if (mongooseConn && mongooseConn.db) {
+          agent = await mongooseConn.db.collection('agents').findOne({ email: email });
+        }
       }
     } catch(e) {
-      console.error('Mongo agent query failed:', e.message);
+      console.error('Mongoose agent query failed:', e.message);
+    }
+    
+    if (!agent) {
+      try {
+        const mongo = await getMongoDb();
+        if (mongo) {
+          agent = await mongo.db.collection('agents').findOne({ email: email });
+        }
+      } catch(e) {
+        console.error('Mongo agent query failed:', e.message);
+      }
     }
     
     if (!agent && global.__inMemoryAgents) {
@@ -100,10 +114,23 @@ router.post('/email-inbound', async (req, res) => {
       });
     }
 
-    // 3. PROCESS each URL
+    // 3. DEDUPLICATE URLs before processing
+    var uniqueUrls = [];
+    var seenUrls = {};
+    for (var ui = 0; ui < urls.length; ui++) {
+      // Normalize: trim trailing slash, lower case
+      var normUrl = urls[ui].replace(/\/$/, '').toLowerCase();
+      if (!seenUrls[normUrl]) {
+        seenUrls[normUrl] = true;
+        uniqueUrls.push(urls[ui]);
+      }
+    }
+    
+    // 4. PROCESS each unique URL
     const results = [];
 
-    for (const url of urls) {
+    for (var ui2 = 0; ui2 < uniqueUrls.length; ui2++) {
+      const url = uniqueUrls[ui2];
       try {
         const scraped = await scrapeUrl(url);
         
@@ -246,15 +273,20 @@ function extractFields(req) {
 
 function extractUrls(text) {
   if (!text) return [];
+  // First, join broken lines: if a URL ends with '=' or a hyphen at line-break, join with next line
+  var processed = text.replace(/\n/g, ' ').replace(/\r/g, '');
+  // Normalise whitespace
+  processed = processed.replace(/\s+/g, ' ');
+  
   var patterns = [
-    /https?:\/\/(?:www\.)?privateproperty\.co\.za\/[^\s<>"']+/gi
+    /https?:\/\/(?:www\.)?privateproperty\.co\.za\/[^\s<>"')]+/gi
   ];
   var found = [];
   for (var pi = 0; pi < patterns.length; pi++) {
-    var matches = text.match(patterns[pi]);
+    var matches = processed.match(patterns[pi]);
     if (matches) {
       for (var mi = 0; mi < matches.length; mi++) {
-        var clean = matches[mi].replace(/[>").,;:\s]+$/, '');
+        var clean = matches[mi].replace(/[>"').,;:\s]+$/, '').replace(/=$/, '');
         if (found.indexOf(clean) === -1) found.push(clean);
       }
     }
@@ -310,10 +342,11 @@ async function scrapeUrl(url) {
           data.price = ppPrice[0].replace(/&nbsp;/g, ' ').replace(/\s+/g, ' ').trim();
         }
       }
-      var ppBed = html.match(/(\d+)\s*Bed/i);
+      var ppBed = html.match(/(\d+)\s*[Bb]ed/i);
       if (ppBed) data.bedrooms = parseInt(ppBed[1], 10);
-      var ppBath = html.match(/(\d+)\s*(?:Bathroom|Bath)/i);
+      var ppBath = html.match(/(\d+)\s*(?:[Bb]athroom|[Bb]ath)/i);
       if (ppBath) data.bathrooms = parseInt(ppBath[1], 10);
+      
       // Extract PP image URLs from HTML (URLs end with 'contain/jpegorpng' not a standard extension)
       var ppImgRegex = /https?:\/\/images\.pp\.co\.za[^"'\s]+/gi;
       var ppImgs = html.match(ppImgRegex);
@@ -326,6 +359,39 @@ async function scrapeUrl(url) {
             data.images.push({ url: ppurl, alt: data.title });
           }
         }
+      }
+      
+      // Also try image URLs from helium subdomain (watermarked listing images)
+      var heliumImgRegex = /https?:\/\/helium\.privateproperty\.co\.za[^"'\s]+/gi;
+      var heliumImgs = html.match(heliumImgRegex);
+      if (heliumImgs && data.images.length === 0) {
+        var helSeen = {};
+        for (var hi = 0; hi < heliumImgs.length && data.images.length < 8; hi++) {
+          var helUrl = heliumImgs[hi];
+          if (!helSeen[helUrl] && (helUrl.match(/\.(?:jpg|jpeg|png|webp)/i) || helUrl.indexOf('jpegorpng') !== -1)) {
+            helSeen[helUrl] = true;
+            data.images.push({ url: helUrl, alt: data.title });
+          }
+        }
+      }
+      
+      // Better price extraction - find explicit currency patterns near listing data
+      if (!data.price || data.price === '' || data.price === 'Price on request') {
+        // Look for price in the HTML body directly (often in a price-specific element)
+        var priceElements = html.match(/<span[^>]*class="[^"]*price[^"]*"[^>]*>([^<]+)<\/span>/gi);
+        if (priceElements) {
+          for (var pe = 0; pe < priceElements.length; pe++) {
+            var priceText = priceElements[pe].replace(/<[^>]+>/g, '').trim();
+            var rPrice = priceText.match(/R\s*[\d]+[\s,]*[\d]{3,}/);
+            if (rPrice) { data.price = rPrice[0].trim(); break; }
+          }
+        }
+      }
+      
+      // Try data attributes
+      if (!data.price || data.price === '' || data.price === 'Price on request') {
+        var dataPriceAttrs = html.match(/data-price="([^"]+)"/i);
+        if (dataPriceAttrs) data.price = dataPriceAttrs[1].trim();
       }
     }
   } catch(e) {
