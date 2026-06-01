@@ -123,28 +123,47 @@ router.post('/login', async (req, res) => {
     // 1. Try in-memory (fast, reliable)
     agent = inMemoryAgents.find(a => a.email === normalizedEmail);
     
-    // 2. Try raw MongoDB driver (more reliable than Mongoose)
+    // 2. Try global Mongoose connection (getMongoDbPromise)
     if (!agent) {
       try {
         if (typeof global.getMongoDbPromise === 'function') {
-          var db = await getMongoDbPromise();
+          var db = await global.getMongoDbPromise();
           if (db) {
             agent = await db.collection('agents').findOne({ email: normalizedEmail });
-            if (agent && agent._id && agent._id.toString) agent._id = agent._id.toString();
-            if (agent && agent.password) {
-              // Warm the in-memory cache
-              if (!global.__inMemoryAgents) global.__inMemoryAgents = [];
-              var already = global.__inMemoryAgents.find(function(a) { return a._id === agent._id; });
-              if (!already) global.__inMemoryAgents.push(agent);
+            if (agent) {
+              if (agent._id && agent._id.toString) agent._id = agent._id.toString();
+              if (agent.password) {
+                if (!global.__inMemoryAgents) global.__inMemoryAgents = [];
+                var already = global.__inMemoryAgents.find(function(a) { return a._id === agent._id; });
+                if (!already) global.__inMemoryAgents.push(agent);
+              }
             }
           }
         }
-      } catch(e) { console.log('MongoDB login fallback error:', e.message); }
+      } catch(e) { console.log('Mongoose login fallback error:', e.message); }
     }
     
-    // 2b. Mongoose fallback (if raw driver fails)
-    if (!agent && Agent) {
-      try { agent = await Agent.findOne({ email: normalizedEmail }); } catch (e) {}
+    // 2b. Direct MongoDB connection (bypass Mongoose, uses raw MongoClient)
+    if (!agent) {
+      try {
+        var uri = process.env.MONGODB_URI;
+        if (uri && uri.startsWith('mongodb')) {
+          var MongoClient = require('mongodb').MongoClient;
+          var client = new MongoClient(uri, { serverSelectionTimeoutMS: 10000, connectTimeoutMS: 10000 });
+          await client.connect();
+          var mdb = client.db('viewingone');
+          agent = await mdb.collection('agents').findOne({ email: normalizedEmail });
+          if (agent) {
+            if (agent._id && agent._id.toString) agent._id = agent._id.toString();
+            if (agent.password) {
+              if (!global.__inMemoryAgents) global.__inMemoryAgents = [];
+              var already2 = global.__inMemoryAgents.find(function(a) { return a._id === agent._id; });
+              if (!already2) global.__inMemoryAgents.push(agent);
+            }
+          }
+          await client.close();
+        }
+      } catch(e) { console.log('Direct Mongo login error:', e.message); }
     }
 
     // 3. Fall back to /tmp/agents.json for cross-instance persistence
