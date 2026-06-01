@@ -370,4 +370,36 @@ router.put('/me', async (req, res) => {
   }
 });
 
+// DELETE /api/auth/:email — Delete agent (for password reset / cleanup)
+router.delete('/:email', async (req, res) => {
+  try {
+    const email = decodeURIComponent(req.params.email).toLowerCase().trim();
+    if (!email) return res.status(400).json({ success: false, message: 'Email required' });
+    
+    let deleted = false;
+    
+    // Try MongoDB
+    try {
+      if (typeof global.getMongoDbPromise === 'function') {
+        const mongo = await global.getMongoDbPromise();
+        if (mongo) {
+          const result = await mongo.db.collection('agents').deleteOne({ email: email });
+          if (result.deletedCount > 0) deleted = true;
+        }
+      }
+    } catch(e) {}
+    
+    // Remove from in-memory
+    if (global.__inMemoryAgents) {
+      const before = global.__inMemoryAgents.length;
+      global.__inMemoryAgents = global.__inMemoryAgents.filter(a => a.email !== email);
+      if (global.__inMemoryAgents.length < before) deleted = true;
+    }
+    
+    res.json({ success: true, message: deleted ? 'Agent deleted: ' + email : 'Agent not found: ' + email, deleted: deleted });
+  } catch(err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
 module.exports = router;
