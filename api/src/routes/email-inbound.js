@@ -319,27 +319,31 @@ async function scrapeUrl(url) {
 
     // Standard OG tags
     var ogTitle = html.match(/<meta\s+property="og:title"\s+content="([^"]+)"/i);
-    if (ogTitle) data.title = ogTitle[1].trim().substring(0, 200);
+    if (ogTitle) data.title = ogTitle[1].trim().replace(/\|\s*Private Property\s*$/i, '').trim().substring(0, 200);
     
     if (!ogTitle) {
       var titleTag = html.match(/<title>([^<]+)<\/title>/i);
-      if (titleTag) data.title = titleTag[1].trim().substring(0, 200);
+      if (titleTag) data.title = titleTag[1].trim().replace(/\|\s*Private Property\s*$/i, '').trim().substring(0, 200);
     }
 
     var ogImage = html.match(/<meta\s+property="og:image"\s+content="([^"]+)"/i);
-    if (ogImage) data.images.push({ url: ogImage[1].trim(), alt: data.title });
+    if (ogImage && ogImage[1].indexOf('privateproperty-icon') === -1) {
+      data.images.push({ url: ogImage[1].trim(), alt: data.title });
+    }
     
     var ogDesc = html.match(/<meta\s+property="og:description"\s+content="([^"]+)"/i);
     if (ogDesc) data.description = ogDesc[1].trim().substring(0, 500);
 
     // Private Property extraction
     if (url.indexOf('privateproperty.co.za') !== -1) {
-      // Price from og:title (PP puts R price in title with &nbsp; separators)
+      // Price from og:title (PP puts R price in title with HTML entities like &#160;)
       var ogTitle = html.match(/<meta property="og:title" content="([^"]+)"/i);
       if (ogTitle) {
-        var ppPrice = ogTitle[1].match(/R[\d,&nbsp;\s]+/i);
+        // Strip HTML entities first so price is readable
+        var ogClean = ogTitle[1].replace(/&[a-z]+;/g, ' ').replace(/&#\d{2,6};/g, ' ').replace(/\s+/g, ' ');
+        var ppPrice = ogClean.match(/R\s*[\d][\d\s,\.]*/i);
         if (ppPrice) {
-          data.price = ppPrice[0].replace(/&nbsp;/g, ' ').replace(/\s+/g, ' ').trim();
+          data.price = ppPrice[0].trim();
         }
       }
       var ppBed = html.match(/(\d+)\s*[Bb]ed/i);
