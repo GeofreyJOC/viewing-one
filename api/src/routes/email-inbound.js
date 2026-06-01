@@ -297,22 +297,8 @@ function extractUrls(text) {
 async function scrapeUrl(url) {
   var data = { title: 'Property listing', price: '', location: '', bedrooms: 0, bathrooms: 0, size: '', propertyType: 'house', description: 'Imported from ' + url, images: [] };
   try {
-    var fetch = (await import('node-fetch')).default;
-    var resp = null;
-    for (var ai = 0; ai < 2; ai++) {
-      try {
-        resp = await fetch(url, {
-          headers: {
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
-            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8'
-          },
-          timeout: 20000
-        });
-        if (resp.ok) { console.log('Scrape OK: ' + url.substring(0,60)); break; }
-        else console.log('Scrape status ' + resp.status + ' for: ' + url.substring(0,60));
-      } catch(fe) {
-        if (ai === 0) { await new Promise(function(rr) { setTimeout(rr, 2000); }); continue; }
-        throw fe;
+    var html = await fetchViaHttp(url);
+    if (!html) return data;
       }
     }
     if (!resp || !resp.ok) return data;
@@ -338,7 +324,9 @@ async function scrapeUrl(url) {
       // Price from og:title (PP puts R price in title with &nbsp; separators)
       var ogTitle = html.match(/<meta property="og:title" content="([^"]+)"/i);
       if (ogTitle) {
-        var ppPrice = ogTitle[1].match(/R[\d,&nbsp;\s]+/i);
+        // Replace &nbsp;/&#160; HTML entities with spaces for price parsing
+        var ogTitleClean = ogTitle[1].replace(/&nbsp;/g, ' ').replace(/&#\d+;/g, ' ');
+        var ppPrice = ogTitleClean.match(/R[\d\s,]+/i);
         if (ppPrice) {
           data.price = ppPrice[0].replace(/&nbsp;/g, ' ').replace(/\s+/g, ' ').trim();
         }
@@ -414,6 +402,45 @@ function generateSlots() {
     }
   }
   return slots;
+}
+
+// Fetch HTML via Node built-in http/https (no npm dependency, works anywhere)
+function fetchViaHttp(url) {
+  return new Promise(function(resolve) {
+    var mod = url.indexOf('https://') === 0 ? require('https') : require('http');
+    var started = Date.now();
+    var req = mod.get(url, {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8'
+      },
+      timeout: 20000
+    }, function(res) {
+      var status = res.statusCode;
+      if (status !== 200) {
+        console.log('fetchViaHttp status ' + status + ' for ' + url.substring(0,50));
+        res.resume();
+        resolve(null);
+        return;
+      }
+      var chunks = [];
+      res.on('data', function(c) { chunks.push(c); });
+      res.on('end', function() {
+        var html = Buffer.concat(chunks).toString('utf8');
+        console.log('fetchViaHttp OK: ' + html.length + ' bytes in ' + (Date.now()-started) + 'ms for ' + url.substring(0,50));
+        resolve(html);
+      });
+    });
+    req.on('error', function(e) {
+      console.log('fetchViaHttp error: ' + e.message);
+      resolve(null);
+    });
+    req.on('timeout', function() {
+      req.destroy();
+      console.log('fetchViaHttp timeout for ' + url.substring(0,50));
+      resolve(null);
+    });
+  });
 }
 
 module.exports = router;
