@@ -306,9 +306,10 @@ async function scrapeUrl(url) {
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
             'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8'
           },
-          timeout: 8000
+          timeout: 20000
         });
-        if (resp.ok) break;
+        if (resp.ok) { console.log('Scrape OK: ' + url.substring(0,60)); break; }
+        else console.log('Scrape status ' + resp.status + ' for: ' + url.substring(0,60));
       } catch(fe) {
         if (ai === 0) { await new Promise(function(rr) { setTimeout(rr, 2000); }); continue; }
         throw fe;
