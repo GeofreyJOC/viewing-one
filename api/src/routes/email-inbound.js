@@ -273,9 +273,9 @@ function extractFields(req) {
 
 function extractUrls(text) {
   if (!text) return [];
-  // First, join broken lines: if a URL ends with '=' or a hyphen at line-break, join with next line
-  var processed = text.replace(/\n/g, ' ').replace(/\r/g, '');
-  // Normalise whitespace
+  // Remove newlines entirely to fix email line-wrapped URLs
+  var processed = text.replace(/\n/g, '').replace(/\r/g, '');
+  // Normalise whitespace (but keep URLs intact)
   processed = processed.replace(/\s+/g, ' ');
   
   var patterns = [

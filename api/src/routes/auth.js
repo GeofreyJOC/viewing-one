@@ -71,6 +71,26 @@ router.post('/register', async (req, res) => {
         if (err) console.error('Gist save error:', err.message);
       });
     } catch(e){ console.error('Gist require error:', e.message); }
+    // Persist to MongoDB so agent survives cold restarts
+    try {
+      if (typeof global.getMongoDbPromise === 'function') {
+        global.getMongoDbPromise().then(function(conn) {
+          if (conn && conn.db) {
+            conn.db.collection('agents').updateOne(
+              { email: normalizedEmail },
+              { $set: agent },
+              { upsert: true }
+            ).catch(function(e) { console.error('Mongo register save:', e.message); });
+          }
+        }).catch(function(e) { console.error('Mongo register connect:', e.message); });
+      }
+    } catch(e) { console.error('Mongo register error:', e.message); }
+    // Also try Mongoose model (alternative connection)
+    try {
+      if (Agent) {
+        (new Agent(agent)).save().catch(function(e){});
+      }
+    } catch(e){}
 
     const token = jwt.sign({ id: agentId.toString(), email: normalizedEmail }, JWT_SECRET, { expiresIn: '30d' });
 
