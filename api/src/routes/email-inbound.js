@@ -329,6 +329,7 @@ async function scrapeUrl(url) {
         .replace(/&[a-z]+;/g, " ")
         .replace(/&#\d{2,6};/g, " ")
         .replace(/\s+/g, " ")
+        .replace(/^R\s*[\d][\d\s,.]*\s*\|\s*/i, "")
         .trim().substring(0, 200);
     }
     if (!ogTitle || data.title.length < 3) {
