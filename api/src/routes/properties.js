@@ -202,14 +202,15 @@ router.get('/', async (req, res) => {
       }
     } catch(e) {}
 
-    // In-memory / tmp fallback (only if MongoDB returned no results AND isn't connected)
-    // When MongoDB is connected, trust it even if empty
-    var props = [];
+    // In-memory / tmp fallback — used only when MongoDB is unreachable
+    var props = global.__inMemoryProperties || [];
     if (!props.length) {
       try { props = JSON.parse(require('fs').readFileSync('/tmp/properties.json','utf8')); } catch(e){}
     }
-    if (!props.length) {
-      props = global.__inMemoryProperties || [];
+    // Check if we DO have a valid MongoDB connection that returned empty — trust it
+    if (db) {
+      // MongoDB is connected but returned 0 results — that IS the truth
+      props = [];
     }
     res.json({ success: true, properties: props });
   } catch (error) {
