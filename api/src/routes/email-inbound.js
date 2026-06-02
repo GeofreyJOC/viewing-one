@@ -277,24 +277,25 @@ function extractUrls(text) {
   var processed = text.replace(/\n/g, '').replace(/\r/g, '');
   // Normalise whitespace (but keep URLs intact)
   processed = processed.replace(/\s+/g, ' ');
-  
+  // Match full Private Property URLs with listing IDs (T followed by digits)
   var patterns = [
-    /https?:\/\/(?:www\.)?privateproperty\.co\.za\/[^\s<>"')]+/gi
+    /https?:\/\/(?:www\.)?privateproperty\.co\.za\/[a-z-]+\/[a-z-]+\/[a-z-]+\/[a-z-]+\/[a-z-]+\/[a-zA-Z0-9]+/gi
   ];
   var found = [];
   for (var pi = 0; pi < patterns.length; pi++) {
     var matches = processed.match(patterns[pi]);
     if (matches) {
       for (var mi = 0; mi < matches.length; mi++) {
-        var clean = matches[mi].replace(/[>"').,;:\s]+$/, '').replace(/=$/, '');
-        if (found.indexOf(clean) === -1) found.push(clean);
+        var clean = matches[mi].replace(/[>"').,;:\s]+$/, '').replace(/[=]\w*$/, '');
+        // Skip URLs that look truncated (no property ID or too short)
+        if (clean.length > 60 && found.indexOf(clean) === -1) {
+          found.push(clean);
+        }
       }
     }
   }
   return found;
-}
-
-async function scrapeUrl(url) {
+}function scrapeUrl(url) {
   var data = { title: 'Property listing', price: '', location: '', bedrooms: 0, bathrooms: 0, size: '', propertyType: 'house', description: 'Imported from ' + url, images: [] };
   try {
     var fetch = require('node-fetch');
@@ -319,7 +320,7 @@ async function scrapeUrl(url) {
 
     // Standard OG tags
     var ogTitle = html.match(/<meta\s+property="og:title"\s+content="([^"]+)"/i);
-    if (ogTitle) data.title = ogTitle[1].trim().replace(/\|\s*Private Property\s*$/i, '').trim().substring(0, 200);
+    if (ogTitle) data.title = ogTitle[1].trim().replace(/\|\s*Private Property\s*$/i, '').trim().replace(/&[a-z]+;/g, ' ').replace(/&#\d{2,6};/g, ' ').replace(/\s+/g, ' ').trim().substring(0, 200);
     
     if (!ogTitle) {
       var titleTag = html.match(/<title>([^<]+)<\/title>/i);
@@ -327,6 +328,8 @@ async function scrapeUrl(url) {
     }
 
     var ogImage = html.match(/<meta\s+property="og:image"\s+content="([^"]+)"/i);
+    var ogImage2 = html.match(/<meta\s+name="twitter:image"\s+content="([^"]+)"/i);
+    if (!ogImage && ogImage2) ogImage = ogImage2;
     if (ogImage && ogImage[1].indexOf('privateproperty-icon') === -1) {
       data.images.push({ url: ogImage[1].trim(), alt: data.title });
     }
@@ -379,7 +382,17 @@ async function scrapeUrl(url) {
         }
       }
       
-      // Better price extraction - find explicit currency patterns near listing data
+      // Last resort: try to fetch images from OG URL directly
+if (data.images.length === 0) {
+  // Extract property ID from URL and construct the PP image API URL
+  var propId = url.match(/T(\d+)/i);
+  if (propId) {
+    // PP uses images.privateproperty.co.za with the property ID
+    data.images.push({ url: 'https://images.privateproperty.co.za/' + propId[0] + '/0/0.jpg', alt: data.title });
+  }
+}
+
+    // Better price extraction// Better price extraction - find explicit currency patterns near listing data
       if (!data.price || data.price === '' || data.price === 'Price on request') {
         // Look for price in the HTML body directly (often in a price-specific element)
         var priceElements = html.match(/<span[^>]*class="[^"]*price[^"]*"[^>]*>([^<]+)<\/span>/gi);
