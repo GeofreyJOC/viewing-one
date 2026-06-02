@@ -273,11 +273,8 @@ function extractFields(req) {
 
 function extractUrls(text) {
   if (!text) return [];
-  // Remove newlines entirely to fix email line-wrapped URLs
   var processed = text.replace(/\n/g, '').replace(/\r/g, '');
-  // Normalise whitespace (but keep URLs intact)
   processed = processed.replace(/\s+/g, ' ');
-  // Match full Private Property URLs with listing IDs (T followed by digits)
   var patterns = [
     /https?:\/\/(?:www\.)?privateproperty\.co\.za\/[a-z-]+\/[a-z-]+\/[a-z-]+\/[a-z-]+\/[a-z-]+\/[a-zA-Z0-9]+/gi
   ];
@@ -287,7 +284,6 @@ function extractUrls(text) {
     if (matches) {
       for (var mi = 0; mi < matches.length; mi++) {
         var clean = matches[mi].replace(/[>"').,;:\s]+$/, '').replace(/[=]\w*$/, '');
-        // Skip URLs that look truncated (no property ID or too short)
         if (clean.length > 60 && found.indexOf(clean) === -1) {
           found.push(clean);
         }
@@ -297,7 +293,7 @@ function extractUrls(text) {
   return found;
 }
 
-async function scrapeUrl(url) {
+function scrapeUrl(url) {
   var data = { title: 'Property listing', price: '', location: '', bedrooms: 0, bathrooms: 0, size: '', propertyType: 'house', description: 'Imported from ' + url, images: [] };
   try {
     var fetch = require('node-fetch');
@@ -330,6 +326,8 @@ async function scrapeUrl(url) {
     }
 
     var ogImage = html.match(/<meta\s+property="og:image"\s+content="([^"]+)"/i);
+  var ogImage2 = html.match(/<meta\s+name="twitter:image"\s+content="([^"]+)"/i);
+  if (!ogImage && ogImage2) ogImage = ogImage2;
     var ogImage2 = html.match(/<meta\s+name="twitter:image"\s+content="([^"]+)"/i);
     if (!ogImage && ogImage2) ogImage = ogImage2;
     if (ogImage && ogImage[1].indexOf('privateproperty-icon') === -1) {
@@ -394,7 +392,7 @@ if (data.images.length === 0) {
   }
 }
 
-    // Better price extraction// Better price extraction - find explicit currency patterns near listing data
+    // Better price extraction - find explicit currency patterns near listing data
       if (!data.price || data.price === '' || data.price === 'Price on request') {
         // Look for price in the HTML body directly (often in a price-specific element)
         var priceElements = html.match(/<span[^>]*class="[^"]*price[^"]*"[^>]*>([^<]+)<\/span>/gi);
