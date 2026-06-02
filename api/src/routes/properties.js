@@ -202,10 +202,14 @@ router.get('/', async (req, res) => {
       }
     } catch(e) {}
 
-    // In-memory / tmp fallback
-    var props = global.__inMemoryProperties || [];
+    // In-memory / tmp fallback (only if MongoDB returned no results AND isn't connected)
+    // When MongoDB is connected, trust it even if empty
+    var props = [];
     if (!props.length) {
       try { props = JSON.parse(require('fs').readFileSync('/tmp/properties.json','utf8')); } catch(e){}
+    }
+    if (!props.length) {
+      props = global.__inMemoryProperties || [];
     }
     res.json({ success: true, properties: props });
   } catch (error) {
