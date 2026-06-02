@@ -81,42 +81,47 @@ global.getMongoDbPromise = function getMongoDbPromise() {
   // Create a lazy promise that fires immediately
   global.__mongoDbPromise = new Promise(function(resolve) {
     try {
-      var mongoose = require('mongoose');
-      mongoose.set('bufferCommands', false);
-      var origUri = process.env.MONGODB_URI;
-      if (!origUri || !origUri.startsWith('mongodb')) {
+      var MongoClient = require('mongodb').MongoClient;
+      var uri = process.env.MONGODB_URI;
+      if (!uri || !uri.startsWith('mongodb')) {
         resolve(null);
         return;
       }
       console.log('MongoDB connecting...');
       
-      // Try SRV first, then fall back to non-SRV
-      function tryConnect(uri, remainingTries) {
-        mongoose.connect(uri, { serverSelectionTimeoutMS: 5000, connectTimeoutMS: 5000 })
-          .then(function() {
-            dbStatus = 'connected';
-            console.log('MongoDB connected!');
-            resolve(mongoose.connection.db);
-          })
-          .catch(function(err) {
-            console.log('MongoDB attempt failed:', (err.message || '').slice(0, 80));
-            // If SRV failed and we have a non-SRV fallback, try that
-            if (remainingTries > 0 && uri.startsWith('mongodb+srv')) {
-              // Build non-SRV URI from the SRV connection string
-              var atIdx = uri.indexOf('@');
-              var creds2 = uri.substring(0, atIdx + 1).replace('mongodb+srv://', 'mongodb://');
-              var altUri = creds2 + 'ac-mwb77et-shard-00-00.dwom1k2.mongodb.net:27017,ac-mwb77et-shard-00-01.dwom1k2.mongodb.net:27017,ac-mwb77et-shard-00-02.dwom1k2.mongodb.net:27017/viewing-one?ssl=true&replicaSet=atlas-coeo9w-shard-0&retryWrites=true&w=majority';
-              console.log('Trying non-SRV fallback...');
-              mongoose.disconnect();
-              tryConnect(altUri, remainingTries - 1);
-            } else {
-              resolve(null);
-            }
-          });
+      // Try SRV first, then fall back to non-SRV shard hostnames
+      async function tryConnect(mongoUri) {
+        try {
+          var c = new MongoClient(mongoUri, { serverSelectionTimeoutMS: 5000, connectTimeoutMS: 5000 });
+          await c.connect();
+          return c;
+        } catch(e) {
+          console.log('MongoDB attempt failed:', (e.message || '').slice(0, 80));
+          return null;
+        }
       }
-      tryConnect(origUri, 1);
+      
+      (async function() {
+        var client = await tryConnect(uri);
+        if (!client && uri.startsWith('mongodb+srv')) {
+          // Non-SRV fallback with known shard hostnames
+          var atIdx = uri.indexOf('@');
+          var creds = uri.substring(0, atIdx + 1).replace('mongodb+srv://', 'mongodb://');
+          var shardUri = creds + 'ac-mwb77et-shard-00-00.dwom1k2.mongodb.net:27017,ac-mwb77et-shard-00-01.dwom1k2.mongodb.net:27017,ac-mwb77et-shard-00-02.dwom1k2.mongodb.net:27017/viewingone?ssl=true&replicaSet=atlas-coeo9w-shard-0&retryWrites=true&w=majority';
+          client = await tryConnect(shardUri);
+        }
+        
+        if (client) {
+          dbStatus = 'connected';
+          console.log('MongoDB connected!');
+          // Use the same database name as email-inbound ('viewingone')
+          resolve(client.db('viewingone'));
+        } else {
+          resolve(null);
+        }
+      })();
     } catch(e) {
-      console.log('Mongoose error:', (e.message || '').slice(0, 80));
+      console.log('MongoDB error:', (e.message || '').slice(0, 80));
       resolve(null);
     }
   });
