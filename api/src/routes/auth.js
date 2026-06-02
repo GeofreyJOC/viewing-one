@@ -75,7 +75,7 @@ router.post('/register', async (req, res) => {
     try {
       if (typeof global.getMongoDbPromise === 'function') {
         global.getMongoDbPromise().then(function(conn) {
-          if (conn && conn.db) {
+          if (conn && conn) {
             conn.db.collection('agents').updateOne(
               { email: normalizedEmail },
               { $set: agent },
@@ -444,7 +444,7 @@ router.delete('/:email', async (req, res) => {
       if (typeof global.getMongoDbPromise === 'function') {
         const mongo = await global.getMongoDbPromise();
         if (mongo) {
-          const result = await mongo.db.collection('agents').deleteOne({ email: email });
+          const result = await mongo.collectionon('agents').deleteOne({ email: email });
           if (result.deletedCount > 0) deleted = true;
         }
       }
