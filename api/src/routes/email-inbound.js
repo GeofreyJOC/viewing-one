@@ -318,19 +318,17 @@ async function scrapeUrl(url) {
 
     // Standard OG tags
     var ogTitle = html.match(/<meta\s+property="og:title"\s+content="([^"]+)"/i);
-    if (ogTitle) data.title = ogTitle[1].trim().replace(/\|\s*Private Property\s*$/i, '').trim().replace(/&[a-z]+;/g, ' ').replace(/&#\d{2,6};/g, ' ').replace(/\s+/g, ' ').trim().substring(0, 200);
+    if (ogTitle) data.title = ogTitle[1].trim().replace(/\|\s*Private Property\s*$/i, '').replace(/\|\s*T\d+\s*\|/g, '-').replace(/\s*\|\s*T\d+\s*$/i, '').trim().replace(/&[a-z]+;/g, ' ').replace(/&#\d{2,6};/g, ' ').replace(/\s+/g, ' ').trim().substring(0, 200);
     
     if (!ogTitle) {
       var titleTag = html.match(/<title>([^<]+)<\/title>/i);
-      if (titleTag) data.title = titleTag[1].trim().replace(/\|\s*Private Property\s*$/i, '').trim().substring(0, 200);
+      if (titleTag) data.title = titleTag[1].trim().replace(/\|\s*Private Property\s*$/i, '').replace(/\|\s*T\d+\s*\|/g, '-').replace(/\s*\|\s*T\d+\s*$/i, '').trim().replace(/&[a-z]+;/g, ' ').replace(/&#\d{2,6};/g, ' ').replace(/\s+/g, ' ').trim().substring(0, 200);
     }
 
     var ogImage = html.match(/<meta\s+property="og:image"\s+content="([^"]+)"/i);
   var ogImage2 = html.match(/<meta\s+name="twitter:image"\s+content="([^"]+)"/i);
   if (!ogImage && ogImage2) ogImage = ogImage2;
-    var ogImage2 = html.match(/<meta\s+name="twitter:image"\s+content="([^"]+)"/i);
-    if (!ogImage && ogImage2) ogImage = ogImage2;
-    if (ogImage && ogImage[1].indexOf('privateproperty-icon') === -1) {
+    if (ogImage && ogImage[1] && ogImage[1].indexOf('privateproperty-icon') === -1) {
       data.images.push({ url: ogImage[1].trim(), alt: data.title });
     }
     
