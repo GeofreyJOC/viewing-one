@@ -92,7 +92,7 @@ global.getMongoDbPromise = function getMongoDbPromise() {
       
       // Try SRV first, then fall back to non-SRV
       function tryConnect(uri, remainingTries) {
-        mongoose.connect(uri, { serverSelectionTimeoutMS: 15000, connectTimeoutMS: 15000 })
+        mongoose.connect(uri, { serverSelectionTimeoutMS: 5000, connectTimeoutMS: 5000 })
           .then(function() {
             dbStatus = 'connected';
             console.log('MongoDB connected!');

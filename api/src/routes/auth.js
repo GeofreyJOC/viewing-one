@@ -149,13 +149,15 @@ router.post('/login', async (req, res) => {
         var uri = process.env.MONGODB_URI;
         if (uri && (uri.startsWith('mongodb://') || uri.startsWith('mongodb+srv://'))) {
           var MongoClient = require('mongodb').MongoClient;
-          // Try direct (non-SRV) connection first
+          // Try non-SRV with specific shard hostnames (clustervo hostname has only SRV records)
           try {
-            var directUri = uri.replace('mongodb+srv://', 'mongodb://').replace(/\?.*$/, '') + '?ssl=true&retryWrites=true&w=majority&directConnection=true';
-            var directClient = new MongoClient(directUri, { serverSelectionTimeoutMS: 15000, connectTimeoutMS: 15000 });
-            await directClient.connect();
-            var directDb = directClient.db('viewingone');
-            agent = await directDb.collection('agents').findOne({ email: normalizedEmail });
+            var atIdx = uri.indexOf('@');
+            var creds = uri.substring(0, atIdx + 1).replace('mongodb+srv://', 'mongodb://');
+            var shardUri = creds + 'ac-mwb77et-shard-00-00.dwom1k2.mongodb.net:27017,ac-mwb77et-shard-00-01.dwom1k2.mongodb.net:27017,ac-mwb77et-shard-00-02.dwom1k2.mongodb.net:27017/viewing-one?ssl=true&replicaSet=atlas-coeo9w-shard-0&retryWrites=true&w=majority&directConnection=true';
+            var shardClient = new MongoClient(shardUri, { serverSelectionTimeoutMS: 10000, connectTimeoutMS: 10000 });
+            await shardClient.connect();
+            var shardDb = shardClient.db();
+            agent = await shardDb.collection('agents').findOne({ email: normalizedEmail });
             if (agent) {
               if (agent._id && agent._id.toString) agent._id = agent._id.toString();
               if (agent.password) {
@@ -164,12 +166,12 @@ router.post('/login', async (req, res) => {
                 if (!alreadyDirect) global.__inMemoryAgents.push(agent);
               }
             }
-            await directClient.close();
-          } catch(e1) { console.log('Direct MongoClient login error:', e1.message); }
+            await shardClient.close();
+          } catch(e1) { console.log('Shard MongoClient login error:', e1.message); }
           // Try SRV connection as second fallback
           if (!agent) {
             try {
-              var srvClient = new MongoClient(uri, { serverSelectionTimeoutMS: 15000, connectTimeoutMS: 15000 });
+              var srvClient = new MongoClient(uri, { serverSelectionTimeoutMS: 10000, connectTimeoutMS: 10000 });
               await srvClient.connect();
               var srvDb = srvClient.db('viewingone');
               agent = await srvDb.collection('agents').findOne({ email: normalizedEmail });
