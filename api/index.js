@@ -290,6 +290,54 @@ app.get('/api/health', async (req, res) => {
 });
 
 // Agent page routing
+
+// Debug: check agent in MongoDB directly
+app.get('/api/debug-agent', async (req, res) => {
+  try {
+    var { MongoClient } = require('mongodb');
+    var uri = process.env.MONGODB_URI;
+    if (!uri || !uri.startsWith('mongodb')) return res.json({ error: 'no mongo uri' });
+    var client = new MongoClient(uri, { serverSelectionTimeoutMS: 10000 });
+    await client.connect();
+    var db = client.db('viewingone');
+    var agents = await db.collection('agents').find({}).toArray();
+    var info = { count: agents.length };
+    info.agents = agents.map(function(a) {
+      return {
+        email: a.email,
+        slug: a.slug,
+        hasPassword: !!a.password,
+        passwordLen: a.password ? a.password.length : 0,
+        idType: typeof a._id,
+        isActive: a.isActive
+      };
+    });
+    await client.close();
+    res.json(info);
+  } catch(e) {
+    res.json({ error: e.message });
+  }
+});
+
+app.get('/api/db-status', async (req, res) => {
+  const info = { database: dbStatus, mongoUri: process.env.MONGODB_URI ? 'set' : 'not-set' };
+  if (mongoClient) {
+    try {
+      info.isConnected = !!(await mongoClient.db('viewingone').command({ ping: 1 }));
+    } catch(e) {
+      info.pingError = e.message.slice(0, 100);
+      info.isConnected = false;
+    }
+  }
+  try {
+    const mongoose = require('mongoose');
+    info.mongoose = { readyState: mongoose.connection.readyState };
+    info.mongoose.readyStateLabel = ['disconnected','connected','connecting','disconnecting'][mongoose.connection.readyState] || 'unknown';
+  } catch(e) {}
+  res.json(info);
+});
+
+
 app.get('/:slug', async (req, res, next) => {
   const { slug } = req.params;
   const reserved = ['api', 'register', 'dashboard', 'admin', 'index', 'favicon.ico', 'robots.txt'];
@@ -469,50 +517,4 @@ app.get('*', (req, res) => {
 
 
 // MongoDB diagnostic
-// Debug: check agent in MongoDB directly
-app.get('/api/debug-agent', async (req, res) => {
-  try {
-    var { MongoClient } = require('mongodb');
-    var uri = process.env.MONGODB_URI;
-    if (!uri || !uri.startsWith('mongodb')) return res.json({ error: 'no mongo uri' });
-    var client = new MongoClient(uri, { serverSelectionTimeoutMS: 10000 });
-    await client.connect();
-    var db = client.db('viewingone');
-    var agents = await db.collection('agents').find({}).toArray();
-    var info = { count: agents.length };
-    info.agents = agents.map(function(a) {
-      return {
-        email: a.email,
-        slug: a.slug,
-        hasPassword: !!a.password,
-        passwordLen: a.password ? a.password.length : 0,
-        idType: typeof a._id,
-        isActive: a.isActive
-      };
-    });
-    await client.close();
-    res.json(info);
-  } catch(e) {
-    res.json({ error: e.message });
-  }
-});
-
-app.get('/api/db-status', async (req, res) => {
-  const info = { database: dbStatus, mongoUri: process.env.MONGODB_URI ? 'set' : 'not-set' };
-  if (mongoClient) {
-    try {
-      info.isConnected = !!(await mongoClient.db('viewingone').command({ ping: 1 }));
-    } catch(e) {
-      info.pingError = e.message.slice(0, 100);
-      info.isConnected = false;
-    }
-  }
-  try {
-    const mongoose = require('mongoose');
-    info.mongoose = { readyState: mongoose.connection.readyState };
-    info.mongoose.readyStateLabel = ['disconnected','connected','connecting','disconnecting'][mongoose.connection.readyState] || 'unknown';
-  } catch(e) {}
-  res.json(info);
-});
-
 module.exports = app;
