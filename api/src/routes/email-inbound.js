@@ -294,127 +294,121 @@ function extractUrls(text) {
 }
 
 async function scrapeUrl(url) {
-  var data = { title: 'Property listing', price: '', location: '', bedrooms: 0, bathrooms: 0, size: '', propertyType: 'house', description: 'Imported from ' + url, images: [] };
+  var data = { title: "Property listing", price: "", location: "", bedrooms: 0, bathrooms: 0, size: "", propertyType: "house", description: "Imported from " + url, images: [] };
   try {
-    var fetch = require('node-fetch');
-    var resp = null;
-    for (var ai = 0; ai < 2; ai++) {
-      try {
-        resp = await fetch(url, {
-          headers: {
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
-            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8'
-          },
-          timeout: 20000
-        });
-        if (resp.ok) break;
-      } catch(fe) {
-        if (ai === 0) { await new Promise(function(rr) { setTimeout(rr, 2000); }); continue; }
-        throw fe;
-      }
-    }
-    if (!resp || !resp.ok) return data;
-    var html = await resp.text();
+    // Use built-in https (no node-fetch dependency)
+    var html = await new Promise(function(resolve, reject) {
+      var u = new URL(url);
+      var mod = u.protocol === "https:" ? require("https") : require("http");
+      var opts = {
+        hostname: u.hostname,
+        path: u.pathname + u.search,
+        headers: {
+          "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+          "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8"
+        },
+        timeout: 20000
+      };
+      var req = mod.get(opts, function(resp) {
+        var b = "";
+        resp.on("data", function(c) { b += c; });
+        resp.on("end", function() { resolve(b); });
+      });
+      req.on("error", reject);
+      req.on("timeout", function() { req.destroy(); reject(new Error("timeout")); });
+      req.end();
+    });
 
     // Standard OG tags
     var ogTitle = html.match(/<meta\s+property="og:title"\s+content="([^"]+)"/i);
-    if (ogTitle) data.title = ogTitle[1].trim().replace(/\|\s*Private Property\s*$/i, '').replace(/\|\s*T\d+\s*\|/g, '-').replace(/\s*\|\s*T\d+\s*$/i, '').trim().replace(/&[a-z]+;/g, ' ').replace(/&#\d{2,6};/g, ' ').replace(/\s+/g, ' ').trim().substring(0, 200);
-    
-    if (!ogTitle) {
+    if (ogTitle) {
+      data.title = ogTitle[1]
+        .replace(/\|\s*Private Property\s*$/i, "")
+        .replace(/\|\s*T\d+\s*\|/g, "-")
+        .replace(/\s*\|\s*T\d+\s*$/i, "")
+        .replace(/&[a-z]+;/g, " ")
+        .replace(/&#\d{2,6};/g, " ")
+        .replace(/\s+/g, " ")
+        .trim().substring(0, 200);
+    }
+    if (!ogTitle || data.title.length < 3) {
       var titleTag = html.match(/<title>([^<]+)<\/title>/i);
-      if (titleTag) data.title = titleTag[1].trim().replace(/\|\s*Private Property\s*$/i, '').replace(/\|\s*T\d+\s*\|/g, '-').replace(/\s*\|\s*T\d+\s*$/i, '').trim().replace(/&[a-z]+;/g, ' ').replace(/&#\d{2,6};/g, ' ').replace(/\s+/g, ' ').trim().substring(0, 200);
+      if (titleTag) {
+        data.title = titleTag[1]
+          .replace(/\|\s*Private Property\s*$/i, "")
+          .replace(/\|\s*T\d+\s*\|/g, "-")
+          .replace(/\s*\|\s*T\d+\s*$/i, "")
+          .replace(/&[a-z]+;/g, " ")
+          .replace(/&#\d{2,6};/g, " ")
+          .replace(/\s+/g, " ")
+          .trim().substring(0, 200);
+      }
     }
 
-    var ogImage = html.match(/<meta\s+property="og:image"\s+content="([^"]+)"/i);
-  var ogImage2 = html.match(/<meta\s+name="twitter:image"\s+content="([^"]+)"/i);
-  if (!ogImage && ogImage2) ogImage = ogImage2;
-    if (ogImage && ogImage[1] && ogImage[1].indexOf('privateproperty-icon') === -1) {
-      data.images.push({ url: ogImage[1].trim(), alt: data.title });
-    }
-    
     var ogDesc = html.match(/<meta\s+property="og:description"\s+content="([^"]+)"/i);
     if (ogDesc) data.description = ogDesc[1].trim().substring(0, 500);
 
-    // Private Property extraction
-    if (url.indexOf('privateproperty.co.za') !== -1) {
-      // Price from og:title (PP puts R price in title with HTML entities like &#160;)
-      var ogTitle = html.match(/<meta property="og:title" content="([^"]+)"/i);
-      if (ogTitle) {
-        // Strip HTML entities first so price is readable
-        var ogClean = ogTitle[1].replace(/&[a-z]+;/g, ' ').replace(/&#\d{2,6};/g, ' ').replace(/\s+/g, ' ');
-        var ppPrice = ogClean.match(/R\s*[\d][\d\s,\.]*/i);
-        if (ppPrice) {
-          data.price = ppPrice[0].trim();
+    // Price: first try from og:title with HTML entity handling
+    if (ogTitle) {
+      var ogClean = ogTitle[1].replace(/&[a-z]+;/g, " ").replace(/&#\d{2,6};/g, " ").replace(/\s+/g, " ");
+      var ppPrice = ogClean.match(/R\s*[\d][\d\s,.]*/);
+      if (ppPrice) data.price = ppPrice[0].trim();
+    }
+    // Then try look for price in span elements
+    if (!data.price || data.price === "Price on request") {
+      var priceElems = html.match(/<span[^>]*class="[^"]*price[^"]*"[^>]*>([^<]+)<\/span>/gi);
+      if (priceElems) {
+        for (var pe = 0; pe < priceElems.length; pe++) {
+          var pt = priceElems[pe].replace(/<[^>]+>/g, "").trim();
+          var rp = pt.match(/R\s*[\d]+[\s,]*[\d]{3,}/);
+          if (rp) { data.price = rp[0].trim(); break; }
         }
-      }
-      var ppBed = html.match(/(\d+)\s*[Bb]ed/i);
-      if (ppBed) data.bedrooms = parseInt(ppBed[1], 10);
-      var ppBath = html.match(/(\d+)\s*(?:[Bb]athroom|[Bb]ath)/i);
-      if (ppBath) data.bathrooms = parseInt(ppBath[1], 10);
-      
-      // Extract PP image URLs from HTML (URLs end with 'contain/jpegorpng' not a standard extension)
-      var ppImgRegex = /https?:\/\/images\.pp\.co\.za[^"'\s]+/gi;
-      var ppImgs = html.match(ppImgRegex);
-      if (ppImgs) {
-        var ppSeen = {};
-        for (var pi = 0; pi < ppImgs.length && data.images.length < 8; pi++) {
-          var ppurl = ppImgs[pi];
-          if (!ppSeen[ppurl] && (ppurl.match(/\.(?:jpg|jpeg|png|webp)/i) || ppurl.indexOf('jpegorpng') !== -1)) {
-            ppSeen[ppurl] = true;
-            data.images.push({ url: ppurl, alt: data.title });
-          }
-        }
-      }
-      
-      // Also try image URLs from helium subdomain (watermarked listing images)
-      var heliumImgRegex = /https?:\/\/helium\.privateproperty\.co\.za[^"'\s]+/gi;
-      var heliumImgs = html.match(heliumImgRegex);
-      if (heliumImgs && data.images.length === 0) {
-        var helSeen = {};
-        for (var hi = 0; hi < heliumImgs.length && data.images.length < 8; hi++) {
-          var helUrl = heliumImgs[hi];
-          if (!helSeen[helUrl] && (helUrl.match(/\.(?:jpg|jpeg|png|webp)/i) || helUrl.indexOf('jpegorpng') !== -1)) {
-            helSeen[helUrl] = true;
-            data.images.push({ url: helUrl, alt: data.title });
-          }
-        }
-      }
-      
-      // Last resort: try to fetch images from OG URL directly
-if (data.images.length === 0) {
-  // Extract property ID from URL and construct the PP image API URL
-  var propId = url.match(/T(\d+)/i);
-  if (propId) {
-    // PP uses images.privateproperty.co.za with the property ID
-    data.images.push({ url: 'https://images.privateproperty.co.za/' + propId[0] + '/0/0.jpg', alt: data.title });
-  }
-}
-
-    // Better price extraction - find explicit currency patterns near listing data
-      if (!data.price || data.price === '' || data.price === 'Price on request') {
-        // Look for price in the HTML body directly (often in a price-specific element)
-        var priceElements = html.match(/<span[^>]*class="[^"]*price[^"]*"[^>]*>([^<]+)<\/span>/gi);
-        if (priceElements) {
-          for (var pe = 0; pe < priceElements.length; pe++) {
-            var priceText = priceElements[pe].replace(/<[^>]+>/g, '').trim();
-            var rPrice = priceText.match(/R\s*[\d]+[\s,]*[\d]{3,}/);
-            if (rPrice) { data.price = rPrice[0].trim(); break; }
-          }
-        }
-      }
-      
-      // Try data attributes
-      if (!data.price || data.price === '' || data.price === 'Price on request') {
-        var dataPriceAttrs = html.match(/data-price="([^"]+)"/i);
-        if (dataPriceAttrs) data.price = dataPriceAttrs[1].trim();
       }
     }
+    // Then try data-price attribute
+    if (!data.price || data.price === "Price on request") {
+      var dp = html.match(/data-price="([^"]+)"/i);
+      if (dp) data.price = dp[1].trim();
+    }
+
+    // Beds/baths
+    var ppBed = html.match(/(\d+)\s*[Bb]ed/i);
+    if (ppBed) data.bedrooms = parseInt(ppBed[1], 10);
+    var ppBath = html.match(/(\d+)\s*(?:[Bb]athroom|[Bb]ath)/i);
+    if (ppBath) data.bathrooms = parseInt(ppBath[1], 10);
+
+    // Images: extract ALL from HTML (OG + pp.co.za + helium)
+    var imageSources = [];
+    // OG image
+    var ogImg = html.match(/<meta\s+property="og:image"\s+content="([^"]+)"/i);
+    if (!ogImg) ogImg = html.match(/<meta\s+name="twitter:image"\s+content="([^"]+)"/i);
+    if (ogImg && ogImg[1].indexOf("privateproperty-icon") === -1) {
+      imageSources.push(ogImg[1].trim());
+    }
+    // images.pp.co.za URLs
+    var ppImgUrls = html.match(/https?:\/\/images\.pp\.co\.za[^"'\s]+/gi);
+    if (ppImgUrls) {
+      ppImgUrls.forEach(function(imgUrl) {
+        if (imageSources.indexOf(imgUrl) === -1) imageSources.push(imgUrl);
+      });
+    }
+    // helium subdomain
+    var helUrls = html.match(/https?:\/\/helium\.privateproperty\.co\.za[^"'\s]+/gi);
+    if (helUrls) {
+      helUrls.forEach(function(imgUrl) {
+        if (imageSources.indexOf(imgUrl) === -1) imageSources.push(imgUrl);
+      });
+    }
+    // Build data.images (limit 8, in order)
+    for (var ii = 0; ii < imageSources.length && data.images.length < 8; ii++) {
+      var imgSrc = imageSources[ii];
+      data.images.push({ url: imgSrc, alt: data.title });
+    }
   } catch(e) {
-    console.error('Scrape error for', url, e.message);
+    console.error("Scrape error for", url, e.message);
   }
   return data;
 }
-
 function generateSlots() {
   var slots = [];
   var times = ['09:00', '10:00', '11:00', '14:00', '15:00', '16:00'];
