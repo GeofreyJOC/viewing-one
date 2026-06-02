@@ -150,6 +150,22 @@ router.post('/login', async (req, res) => {
         if (uri && uri.startsWith('mongodb')) {
           var MongoClient = require('mongodb').MongoClient;
           var client = new MongoClient(uri, { serverSelectionTimeoutMS: 10000, connectTimeoutMS: 10000 });
+          try {
+            var nonSrvUri = uri.replace('mongodb+srv://', 'mongodb://').replace(/\?.*$/, '') + '?ssl=true&retryWrites=true&w=majority';
+            var client2 = new MongoClient(nonSrvUri, { serverSelectionTimeoutMS: 10000, connectTimeoutMS: 10000 });
+            await client2.connect();
+            var mdb2 = client2.db('viewingone');
+            agent = await mdb2.collection('agents').findOne({ email: normalizedEmail });
+            if (agent) {
+              if (agent._id && agent._id.toString) agent._id = agent._id.toString();
+              if (agent.password) {
+                if (!global.__inMemoryAgents) global.__inMemoryAgents = [];
+                var alreadySrv = global.__inMemoryAgents.find(function(a) { return a._id === agent._id; });
+                if (!alreadySrv) global.__inMemoryAgents.push(agent);
+              }
+            }
+            await client2.close();
+          } catch(e2) { console.log('Non-SRV login fallback error:', e2.message); }
           await client.connect();
           var mdb = client.db('viewingone');
           agent = await mdb.collection('agents').findOne({ email: normalizedEmail });
