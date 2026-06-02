@@ -469,6 +469,34 @@ app.get('*', (req, res) => {
 
 
 // MongoDB diagnostic
+// Debug: check agent in MongoDB directly
+app.get('/api/debug-agent', async (req, res) => {
+  try {
+    var { MongoClient } = require('mongodb');
+    var uri = process.env.MONGODB_URI;
+    if (!uri || !uri.startsWith('mongodb')) return res.json({ error: 'no mongo uri' });
+    var client = new MongoClient(uri, { serverSelectionTimeoutMS: 10000 });
+    await client.connect();
+    var db = client.db('viewingone');
+    var agents = await db.collection('agents').find({}).toArray();
+    var info = { count: agents.length };
+    info.agents = agents.map(function(a) {
+      return {
+        email: a.email,
+        slug: a.slug,
+        hasPassword: !!a.password,
+        passwordLen: a.password ? a.password.length : 0,
+        idType: typeof a._id,
+        isActive: a.isActive
+      };
+    });
+    await client.close();
+    res.json(info);
+  } catch(e) {
+    res.json({ error: e.message });
+  }
+});
+
 app.get('/api/db-status', async (req, res) => {
   const info = { database: dbStatus, mongoUri: process.env.MONGODB_URI ? 'set' : 'not-set' };
   if (mongoClient) {
