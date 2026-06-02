@@ -143,46 +143,50 @@ router.post('/login', async (req, res) => {
       } catch(e) { console.log('Mongoose login fallback error:', e.message); }
     }
     
-    // 2b. Direct MongoDB connection (bypass Mongoose, uses raw MongoClient)
+        // 2b. Direct MongoDB connection (bypass Mongoose, uses raw MongoClient)
     if (!agent) {
       try {
         var uri = process.env.MONGODB_URI;
-        if (uri && uri.startsWith('mongodb')) {
+        if (uri && (uri.startsWith('mongodb://') || uri.startsWith('mongodb+srv://'))) {
           var MongoClient = require('mongodb').MongoClient;
-          var client = new MongoClient(uri, { serverSelectionTimeoutMS: 10000, connectTimeoutMS: 10000 });
+          // Try direct (non-SRV) connection first
           try {
-            var nonSrvUri = uri.replace('mongodb+srv://', 'mongodb://').replace(/\?.*$/, '') + '?ssl=true&retryWrites=true&w=majority';
-            var client2 = new MongoClient(nonSrvUri, { serverSelectionTimeoutMS: 10000, connectTimeoutMS: 10000 });
-            await client2.connect();
-            var mdb2 = client2.db('viewingone');
-            agent = await mdb2.collection('agents').findOne({ email: normalizedEmail });
+            var directUri = uri.replace('mongodb+srv://', 'mongodb://').replace(/\?.*$/, '') + '?ssl=true&retryWrites=true&w=majority&directConnection=true';
+            var directClient = new MongoClient(directUri, { serverSelectionTimeoutMS: 15000, connectTimeoutMS: 15000 });
+            await directClient.connect();
+            var directDb = directClient.db('viewingone');
+            agent = await directDb.collection('agents').findOne({ email: normalizedEmail });
             if (agent) {
               if (agent._id && agent._id.toString) agent._id = agent._id.toString();
               if (agent.password) {
                 if (!global.__inMemoryAgents) global.__inMemoryAgents = [];
-                var alreadySrv = global.__inMemoryAgents.find(function(a) { return a._id === agent._id; });
-                if (!alreadySrv) global.__inMemoryAgents.push(agent);
+                var alreadyDirect = global.__inMemoryAgents.find(function(a) { return a._id === agent._id; });
+                if (!alreadyDirect) global.__inMemoryAgents.push(agent);
               }
             }
-            await client2.close();
-          } catch(e2) { console.log('Non-SRV login fallback error:', e2.message); }
-          await client.connect();
-          var mdb = client.db('viewingone');
-          agent = await mdb.collection('agents').findOne({ email: normalizedEmail });
-          if (agent) {
-            if (agent._id && agent._id.toString) agent._id = agent._id.toString();
-            if (agent.password) {
-              if (!global.__inMemoryAgents) global.__inMemoryAgents = [];
-              var already2 = global.__inMemoryAgents.find(function(a) { return a._id === agent._id; });
-              if (!already2) global.__inMemoryAgents.push(agent);
-            }
+            await directClient.close();
+          } catch(e1) { console.log('Direct MongoClient login error:', e1.message); }
+          // Try SRV connection as second fallback
+          if (!agent) {
+            try {
+              var srvClient = new MongoClient(uri, { serverSelectionTimeoutMS: 15000, connectTimeoutMS: 15000 });
+              await srvClient.connect();
+              var srvDb = srvClient.db('viewingone');
+              agent = await srvDb.collection('agents').findOne({ email: normalizedEmail });
+              if (agent) {
+                if (agent._id && agent._id.toString) agent._id = agent._id.toString();
+                if (agent.password) {
+                  if (!global.__inMemoryAgents) global.__inMemoryAgents = [];
+                  var alreadySrv = global.__inMemoryAgents.find(function(a) { return a._id === agent._id; });
+                  if (!alreadySrv) global.__inMemoryAgents.push(agent);
+                }
+              }
+              await srvClient.close();
+            } catch(e2) { console.log('SRV MongoClient login error:', e2.message); }
           }
-          await client.close();
         }
       } catch(e) { console.log('Direct Mongo login error:', e.message); }
-    }
-
-    // 3. Fall back to /tmp/agents.json for cross-instance persistence
+    }// 3. Fall back to /tmp/agents.json for cross-instance persistence
     if (!agent) {
       try {
         var fs = require('fs');
