@@ -207,6 +207,9 @@ app.post('/api/setup', async (req, res) => {
         await mDb.collection('agents').deleteMany({});
         await mDb.collection('properties').deleteMany({});
       }
+      // Also clean /tmp cache so old properties don't reappear on warm instances
+      try { require('fs').unlinkSync('/tmp/properties.json'); } catch(e){}
+      try { require('fs').unlinkSync('/tmp/agents.json'); } catch(e){}
     } catch(e) {}
     
     // Create agent
