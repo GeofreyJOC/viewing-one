@@ -400,6 +400,8 @@ async function scrapeUrl(url) {
         if (imageSources.indexOf(imgUrl) === -1) imageSources.push(imgUrl);
       });
     }
+    // Debug: log what we found
+    console.log('Scrape result for', url, '| title:', data.title, '| price:', data.price, '| images found:', imageSources.length);
     // Build data.images (limit 8, in order)
     for (var ii = 0; ii < imageSources.length && data.images.length < 8; ii++) {
       var imgSrc = imageSources[ii];
