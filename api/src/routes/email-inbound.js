@@ -295,7 +295,9 @@ function extractUrls(text) {
     }
   }
   return found;
-}function scrapeUrl(url) {
+}
+
+async function scrapeUrl(url) {
   var data = { title: 'Property listing', price: '', location: '', bedrooms: 0, bathrooms: 0, size: '', propertyType: 'house', description: 'Imported from ' + url, images: [] };
   try {
     var fetch = require('node-fetch');
