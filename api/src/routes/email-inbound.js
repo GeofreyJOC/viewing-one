@@ -428,17 +428,4 @@ function generateSlots() {
   return slots;
 }
 
-// Debug endpoint: test scrape a URL
-router.post('/debug/scrape', async (req, res) => {
-  try {
-    var url = req.body.url;
-    if (!url) return res.json({error: 'url required'});
-    var result = await scrapeUrl(url);
-    result.htmlLength = result.html ? result.html.length : 0;
-    res.json(result);
-  } catch(e) {
-    res.json({error: e.message});
-  }
-});
-
 module.exports = router;
