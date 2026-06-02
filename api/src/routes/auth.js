@@ -153,7 +153,7 @@ router.post('/login', async (req, res) => {
           try {
             var atIdx = uri.indexOf('@');
             var creds = uri.substring(0, atIdx + 1).replace('mongodb+srv://', 'mongodb://');
-            var shardUri = creds + 'ac-mwb77et-shard-00-00.dwom1k2.mongodb.net:27017,ac-mwb77et-shard-00-01.dwom1k2.mongodb.net:27017,ac-mwb77et-shard-00-02.dwom1k2.mongodb.net:27017/viewing-one?ssl=true&replicaSet=atlas-coeo9w-shard-0&retryWrites=true&w=majority&directConnection=true';
+            var shardUri = creds + 'ac-mwb77et-shard-00-00.dwom1k2.mongodb.net:27017,ac-mwb77et-shard-00-01.dwom1k2.mongodb.net:27017,ac-mwb77et-shard-00-02.dwom1k2.mongodb.net:27017/viewing-one?ssl=true&replicaSet=atlas-coeo9w-shard-0&retryWrites=true&w=majority';
             var shardClient = new MongoClient(shardUri, { serverSelectionTimeoutMS: 10000, connectTimeoutMS: 10000 });
             await shardClient.connect();
             var shardDb = shardClient.db();
