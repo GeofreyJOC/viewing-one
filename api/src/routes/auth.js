@@ -62,6 +62,8 @@ router.post('/register', async (req, res) => {
     var agentId = agent._id;
     var agentName = agent.name;
     var agentCompany = agent.companyName;
+    // Clear old cached properties (from pre-fix warm instances)
+    try { require('fs').unlinkSync('/tmp/properties.json'); } catch(e){}
     // Persist to /tmp for warm serverless function reuse
     try { require('fs').writeFileSync('/tmp/agents.json', JSON.stringify(inMemoryAgents)); } catch(e){}
     // Persist to Gist for cross-instance sharing
