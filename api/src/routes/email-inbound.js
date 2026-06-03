@@ -195,7 +195,30 @@ router.post('/email-inbound', async (req, res) => {
               propData.agentId = agentId;
             }
             
-            const result = await mongo.db.collection('properties').insertOne(propData);
+            // Check if URL already exists in MongoDB (global dedup)
+            var existing = await mongo.db.collection('properties').findOne({ sourceUrl: url });
+            if (existing) {
+              console.log('Skipping duplicate URL:', url);
+              results.push({
+                url: url,
+                success: true,
+                id: existing._id.toString ? existing._id.toString() : existing._id,
+                title: existing.title || propData.title,
+                storage: 'mongodb',
+                duplicate: true
+              });
+              saved = true;
+            } else {
+              const result = await mongo.db.collection('properties').insertOne(propData);
+              
+              results.push({
+                url: url,
+                success: true,
+                id: result.insertedId.toString(),
+                title: propData.title,
+                storage: 'mongodb'
+              });
+            }
             
             results.push({
               url: url,
