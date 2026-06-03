@@ -195,6 +195,8 @@ router.get('/', async (req, res) => {
             p._id = p._id.toString ? p._id.toString() : p._id;
             return p;
           });
+          // Deduplicate by sourceUrl
+          props = deduplicateProperties(props);
           global.__inMemoryProperties = props.slice();
           persistCache();
           return res.json({ success: true, properties: props });
@@ -212,6 +214,8 @@ router.get('/', async (req, res) => {
       // MongoDB is connected but returned 0 results — that IS the truth
       props = [];
     }
+    // Deduplicate by sourceUrl (handles /tmp cache vs MongoDB mismatch on warm instances)
+    props = deduplicateProperties(props);
     res.json({ success: true, properties: props });
   } catch (error) {
     console.error('List properties error:', error);
@@ -495,5 +499,24 @@ router.post('/upload-images', async (req, res) => {
     res.status(500).json({ success: false, message: 'Server error', error: error.message });
   }
 });
+
+// Deduplicate properties by sourceUrl (keep the most recently created one)
+function deduplicateProperties(props) {
+  var seen = {};
+  var result = [];
+  for (var i = 0; i < props.length; i++) {
+    var p = props[i];
+    var url = (p.sourceUrl || '').replace(/\/+$/, '').toLowerCase();
+    if (!url) {
+      // No sourceUrl — always include
+      result.push(p);
+    } else if (!seen[url]) {
+      seen[url] = true;
+      result.push(p);
+    }
+    // If already seen by url, skip the duplicate
+  }
+  return result;
+}
 
 module.exports = router;
