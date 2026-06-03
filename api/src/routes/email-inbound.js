@@ -218,32 +218,24 @@ router.post('/email-inbound', async (req, res) => {
                 title: propData.title,
                 storage: 'mongodb'
               });
+              
+              try {
+                await mongo.db.collection('agents').updateOne(
+                  { _id: propData.agentId },
+                  { $inc: { totalProperties: 1 } }
+                );
+              } catch(e) {}
+              
+              // Also add to global in-memory so /api/properties and /api/agents/:slug can find it
+              propData._id = result.insertedId.toString();
+              if (!global.__inMemoryProperties) global.__inMemoryProperties = [];
+              global.__inMemoryProperties.unshift(propData);
+              try {
+                require('fs').writeFileSync('/tmp/properties.json', JSON.stringify(global.__inMemoryProperties));
+              } catch(e) {}
+              
+              saved = true;
             }
-            
-            results.push({
-              url: url,
-              success: true,
-              id: result.insertedId.toString(),
-              title: propData.title,
-              storage: 'mongodb'
-            });
-            
-            try {
-              await mongo.db.collection('agents').updateOne(
-                { _id: propData.agentId },
-                { $inc: { totalProperties: 1 } }
-              );
-            } catch(e) {}
-            
-            // Also add to global in-memory so /api/properties and /api/agents/:slug can find it
-            propData._id = result.insertedId.toString();
-            if (!global.__inMemoryProperties) global.__inMemoryProperties = [];
-            global.__inMemoryProperties.unshift(propData);
-            try {
-              require('fs').writeFileSync('/tmp/properties.json', JSON.stringify(global.__inMemoryProperties));
-            } catch(e) {}
-            
-            saved = true;
           }
         } catch(dbErr) {
           console.error('Mongo insert error:', dbErr.message);
