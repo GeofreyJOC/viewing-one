@@ -108,6 +108,16 @@ router.get('/:slug', async (req, res) => {
       return res.status(404).json({ success: false, message: 'Agent not found or not active' });
     }
 
+    // Deduplicate properties by sourceUrl (prevents /tmp cache ghosts on warm instances)
+    var seenUrls = {};
+    properties = properties.filter(function(pp) {
+      var url = (pp.sourceUrl || '').replace(/\/+$/, '').toLowerCase();
+      if (!url) return true;
+      if (seenUrls[url]) return false;
+      seenUrls[url] = true;
+      return true;
+    });
+
     res.json({
       success: true,
       agent: {
