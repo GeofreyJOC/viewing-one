@@ -414,18 +414,8 @@ async function scrapeUrl(url) {
   return data;
 }
 function generateSlots() {
-  var slots = [];
-  var times = ['09:00', '10:00', '11:00', '14:00', '15:00', '16:00'];
-  for (var d = 1; d <= 7; d++) {
-    var date = new Date();
-    date.setDate(date.getDate() + d);
-    var ds = date.toISOString().split('T')[0];
-    var n = 2 + Math.floor(Math.random() * 3);
-    for (var i = 0; i < n && i < times.length; i++) {
-      slots.push({ _id: crypto.randomUUID(), date: ds, time: times[i], isBooked: false });
-    }
-  }
-  return slots;
+  // No default slots — agent must add them via dashboard
+  return [];
 }
 
 module.exports = router;
