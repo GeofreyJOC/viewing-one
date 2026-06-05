@@ -195,46 +195,59 @@ router.post('/email-inbound', async (req, res) => {
               propData.agentId = agentId;
             }
             
-            // Check if URL already exists in MongoDB (global dedup)
-            var existing = await mongo.db.collection('properties').findOne({ sourceUrl: url });
-            if (existing) {
-              console.log('Skipping duplicate URL:', url);
-              results.push({
-                url: url,
-                success: true,
-                id: existing._id.toString ? existing._id.toString() : existing._id,
-                title: existing.title || propData.title,
-                storage: 'mongodb',
-                duplicate: true
-              });
-              saved = true;
-            } else {
-              const result = await mongo.db.collection('properties').insertOne(propData);
+            // ATOMIC dedup: use updateOne with $setOnInsert instead of findOne+insertOne
+            // This eliminates the TOCTOU race where Cloudflare retries both find existing=null
+            try {
+              const result = await mongo.db.collection('properties').updateOne(
+                { sourceUrl: url },
+                { $setOnInsert: propData },
+                { upsert: true }
+              );
               
-              results.push({
-                url: url,
-                success: true,
-                id: result.insertedId.toString(),
-                title: propData.title,
-                storage: 'mongodb'
-              });
-              
-              try {
-                await mongo.db.collection('agents').updateOne(
-                  { _id: propData.agentId },
-                  { $inc: { totalProperties: 1 } }
-                );
-              } catch(e) {}
-              
-              // Also add to global in-memory so /api/properties and /api/agents/:slug can find it
-              propData._id = result.insertedId.toString();
-              if (!global.__inMemoryProperties) global.__inMemoryProperties = [];
-              global.__inMemoryProperties.unshift(propData);
-              try {
-                require('fs').writeFileSync('/tmp/properties.json', JSON.stringify(global.__inMemoryProperties));
-              } catch(e) {}
-              
-              saved = true;
+              if (result.upsertedCount > 0) {
+                // Property was inserted (new URL)
+                var newId = result.upsertedId._id ? result.upsertedId._id.toString() : result.upsertedId.toString();
+                
+                results.push({
+                  url: url,
+                  success: true,
+                  id: newId,
+                  title: propData.title,
+                  storage: 'mongodb'
+                });
+                
+                try {
+                  await mongo.db.collection('agents').updateOne(
+                    { _id: propData.agentId },
+                    { $inc: { totalProperties: 1 } }
+                  );
+                } catch(e) {}
+                
+                // Also add to global in-memory
+                propData._id = newId;
+                if (!global.__inMemoryProperties) global.__inMemoryProperties = [];
+                global.__inMemoryProperties.unshift(propData);
+                try {
+                  require('fs').writeFileSync('/tmp/properties.json', JSON.stringify(global.__inMemoryProperties));
+                } catch(e) {}
+                
+                saved = true;
+              } else {
+                // Property already existed (matched by sourceUrl)
+                console.log('Skipping duplicate URL (atomic dedup):', url);
+                results.push({
+                  url: url,
+                  success: true,
+                  id: 'existing',
+                  title: propData.title,
+                  storage: 'mongodb',
+                  duplicate: true
+                });
+                saved = true;
+              }
+            } catch(upsertErr) {
+              console.error('MongoDB upsert failed:', upsertErr.message);
+              // Fall through to in-memory fallback
             }
           }
         } catch(dbErr) {

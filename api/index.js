@@ -429,6 +429,16 @@ app.get('/:slug', async (req, res, next) => {
       } catch(e) {}
     }
     
+    // Deduplicate by sourceUrl (prevents TOCTOU duplicates from Cloudflare retries)
+    var seenUrls = {};
+    memProps = memProps.filter(function(p) {
+      var url = (p.sourceUrl || '').replace(/\/+$/, '').toLowerCase();
+      if (!url) return true;
+      if (seenUrls[url]) return false;
+      seenUrls[url] = true;
+      return true;
+    });
+    
     // Build the same format as the /api/agents/:slug response (agent-template.js expects this)
     agentData = {
       success: true,
