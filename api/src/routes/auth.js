@@ -338,6 +338,35 @@ router.put('/me/logo', async (req, res) => {
       updated = true;
     }
     
+    if (!updated) {
+      // Fallback: try raw MongoDB (viewingone database, not Mongoose default 'test')
+      try {
+        if (typeof global.getMongoDbPromise === 'function') {
+          const mongo = await global.getMongoDbPromise();
+          if (mongo && mongo.db) {
+            const mDb = mongo.db;
+            const mResult = await mDb.collection('agents').findOneAndUpdate(
+              { _id: new (require('mongodb').ObjectId)(decoded.id) },
+              { $set: { logo: logo } },
+              { returnDocument: 'after' }
+            );
+            if (mResult) {
+              updated = true;
+              // Sync to in-memory
+              var found = inMemoryAgents.findIndex(function(a2) { return a2._id.toString() === decoded.id; });
+              if (found !== -1) {
+                inMemoryAgents[found].logo = logo;
+              } else {
+                inMemoryAgents.push(mResult);
+              }
+            }
+          }
+        }
+      } catch(e) {
+        console.error('MongoDB fallback logo update failed:', e.message);
+      }
+    }
+
     if (!updated) return res.status(404).json({ success: false, message: 'Agent not found' });
     try { require('fs').writeFileSync('/tmp/agents.json', JSON.stringify(inMemoryAgents)); } catch(e){}
     res.json({ success: true, message: 'Logo updated' });
@@ -402,6 +431,37 @@ router.put('/me', async (req, res) => {
         const result = await Agent.findByIdAndUpdate(decoded.id, { $set: sanitized }, { new: true });
         if (result) { updated = true; updatedAgent = result.toObject(); }
       } catch (e) {}
+    }
+
+    if (!updated) {
+      // Fallback: try raw MongoDB (viewingone database, not Mongoose default 'test')
+      try {
+        if (typeof global.getMongoDbPromise === 'function') {
+          const mongo = await global.getMongoDbPromise();
+          if (mongo && mongo.db) {
+            const mDb = mongo.db;
+            // Update in MongoDB
+            const mResult = await mDb.collection('agents').findOneAndUpdate(
+              { _id: new (require('mongodb').ObjectId)(decoded.id) },
+              { $set: sanitized },
+              { returnDocument: 'after' }
+            );
+            if (mResult) {
+              updated = true;
+              updatedAgent = mResult;
+              // Sync to in-memory
+              var found = inMemoryAgents.findIndex(function(a2) { return a2._id.toString() === decoded.id; });
+              if (found !== -1) {
+                Object.assign(inMemoryAgents[found], sanitized);
+              } else {
+                inMemoryAgents.push(mResult);
+              }
+            }
+          }
+        }
+      } catch(e) {
+        console.error('MongoDB fallback update failed:', e.message);
+      }
     }
 
     if (!updated) {

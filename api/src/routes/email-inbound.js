@@ -304,7 +304,7 @@ function extractUrls(text) {
   var processed = text.replace(/\n/g, '').replace(/\r/g, '');
   processed = processed.replace(/\s+/g, ' ');
   var patterns = [
-    /https?:\/\/(?:www\.)?privateproperty\.co\.za(?:\/[a-z0-9-]+){5,}\/[a-zA-Z0-9]+/gi
+    /https?:\/\/(?:www\.)?privateproperty\.co\.za(?:\/[a-z0-9-]+){4,}(?:\/[a-zA-Z0-9-]+)?/gi
   ];
   var found = [];
   for (var pi = 0; pi < patterns.length; pi++) {
