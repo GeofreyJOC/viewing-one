@@ -346,7 +346,7 @@ router.put('/me/logo', async (req, res) => {
           if (mongo && mongo.db) {
             const mDb = mongo.db;
             const mResult = await mDb.collection('agents').findOneAndUpdate(
-              { _id: new (require('mongodb').ObjectId)(decoded.id) },
+              { _id: decoded.id },
               { $set: { logo: logo } },
               { returnDocument: 'after' }
             );
@@ -442,7 +442,7 @@ router.put('/me', async (req, res) => {
             const mDb = mongo.db;
             // Update in MongoDB
             const mResult = await mDb.collection('agents').findOneAndUpdate(
-              { _id: new (require('mongodb').ObjectId)(decoded.id) },
+              { _id: decoded.id },
               { $set: sanitized },
               { returnDocument: 'after' }
             );
