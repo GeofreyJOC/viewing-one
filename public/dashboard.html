@@ -1019,41 +1019,23 @@ async function addListingByUrl() {
     var scrapedImage = '';
     
     try {
-        // Use a CORS proxy to fetch the PP page from the browser
-        var proxyUrl = 'https://corsproxy.io/?' + encodeURIComponent(url);
-        var pageResp = await fetch(proxyUrl);
-        var pageHtml = await pageResp.text();
-        
-        // Extract title from <title> tag
-        var titleMatch = pageHtml.match(/<title>([^<]+)<\/title>/i);
-        if (titleMatch) {
-            scrapedTitle = titleMatch[1].replace(/\|\s*T\d+\s*\|.*$/, '').replace(/^R[\d,\s]+\|\s*/, '').trim();
-        }
-        
-        // Extract price from og:title (first segment before |)
-        var ogMatch = pageHtml.match(/<meta\s+property="og:title"\s+content="([^"]+)"[^>]*>/i);
-        if (ogMatch) {
-            var ogParts = ogMatch[1].split('|');
-            scrapedPrice = ogParts[0].trim();
-            if (!scrapedTitle) scrapedTitle = ogParts.slice(1).join('|').replace(/\|\s*Private\s*Property\s*$/i, '').trim();
-        }
-        
-        // Extract bedrooms (from _specValue class which contains bed icons)
-        var bedMatch = pageHtml.match(/<span[^>]*_specValue[^>]*>\s*(\d+)\s*<\/span>/i);
-        if (bedMatch) scrapedBeds = bedMatch[1];
-        
-        // Extract image from og:image
-        var imgMatch = pageHtml.match(/<meta\s+property="og:image"\s+content="([^"]+)"[^>]*>/i);
-        if (imgMatch) scrapedImage = imgMatch[1];
-        
-        // Extract beds from JSON+LD
-        var jsonLdMatch = pageHtml.match(/<script\s+type="application\/ld\+json">([^<]+)<\/script>/i);
-        if (jsonLdMatch) {
-            try {
-                var jsonData = JSON.parse(jsonLdMatch[1]);
-                if (jsonData.bedroom && !scrapedBeds) scrapedBeds = jsonData.bedroom;
-                if (jsonData.bathroom && !scrapedBaths) scrapedBaths = jsonData.bathroom;
-            } catch(e) {}
+        // Use server-side scrape endpoint (no CORS proxy needed)
+        var scrapeResp = await fetch(API + '/api/scrape-url', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ url: url })
+        });
+        var scrapeData = await scrapeResp.json();
+        if (scrapeData.success) {
+            scrapedTitle = scrapeData.data.title || '';
+            scrapedPrice = scrapeData.data.price || '';
+            scrapedBeds = scrapeData.data.bedrooms || '';
+            scrapedBaths = scrapeData.data.bathrooms || '';
+            if (scrapeData.data.images && scrapeData.data.images.length > 0) {
+                scrapedImage = scrapeData.data.images[0].url || '';
+            }
+        } else {
+            console.log('Server scrape failed:', scrapeData.message);
         }
     } catch(scrapeErr) {
         console.log('Scrape failed, creating without details:', scrapeErr.message);
