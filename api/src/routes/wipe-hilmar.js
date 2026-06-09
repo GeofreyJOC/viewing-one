@@ -10,8 +10,10 @@ router.post('/wipe-hilmar', async function(req, res) {
   }
   
   try {
-    var db = await (require('../db-with-timeout') || Promise.resolve(null));
-    if (!db) { return res.json({ success: false, message: 'No DB' }); }
+    var mDb = typeof global.getMongoDbPromise === 'function' ? await global.getMongoDbPromise() : null;
+    if (!mDb) { return res.json({ success: false, message: 'No DB connection' }); }
+    
+    var db = mDb;  // getMongoDbPromise returns the db object directly
     
     var col = db.collection('agents');
     var agents = await col.find({ email: 'hilmar.d.samuels@gmail.com' }).toArray();
