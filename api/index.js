@@ -7,6 +7,25 @@ const path = require('path');
 if (!global.__inMemoryAgents) global.__inMemoryAgents = [];
 if (!global.__inMemoryProperties) global.__inMemoryProperties = [];
 
+// Seed known agents from bundled file (permanent fallback, no MongoDB/Gist needed)
+(function seedAgents() {
+  if (global.__inMemoryAgents.length === 0) {
+    try {
+      var seedPath = path.join(__dirname, 'seed-agents.json');
+      if (require('fs').existsSync(seedPath)) {
+        var seedData = JSON.parse(require('fs').readFileSync(seedPath, 'utf8'));
+        if (seedData && seedData.length > 0) {
+          global.__inMemoryAgents = seedData.map(function(a) {
+            if (a._id) a._id = String(a._id);
+            return a;
+          });
+          console.log('🌱 Seeded ' + seedData.length + ' agents from seed-agents.json');
+        }
+      }
+    } catch(e) { console.log('Seed load error:', e.message); }
+  }
+})();
+
 // Load from Gist (shared across all Vercel instances)
 try {
   var gistPersistence = require('./src/gist-persistence');
@@ -380,21 +399,22 @@ app.get('/:slug', async (req, res, next) => {
     } catch(e) { console.log('Gist agent fallback:', e.message); }
   }
   
-  // Tertiary fallback: try MongoDB (poll up to 8s for cold starts)
+  // Tertiary fallback: try MongoDB (Promise.race with 8s timeout)
   if (!memAgent) {
     try {
-      var mDb2 = await getMongoDbPromise();
-      var mStart = Date.now();
-      while (!mDb2 && Date.now() - mStart < 8000) {
-        await new Promise(function(r) { setTimeout(r, 500); });
-        mDb2 = await getMongoDbPromise();
-      }
-      if (mDb2) {
-        var rawAgent = await mDb2.collection('agents').findOne({ slug: slug, isActive: true });
-        if (rawAgent) {
-          memAgent = rawAgent;
-          if (!global.__inMemoryAgents) global.__inMemoryAgents = [];
-          global.__inMemoryAgents.push(memAgent);
+      var mDbPromise = getMongoDbPromise();
+      if (mDbPromise) {
+        var mDb2 = await Promise.race([
+          mDbPromise,
+          new Promise(function(r) { setTimeout(function() { r('__TIMEOUT__'); }, 8000); })
+        ]);
+        if (mDb2 && mDb2 !== '__TIMEOUT__') {
+          var rawAgent = await mDb2.collection('agents').findOne({ slug: slug, isActive: true });
+          if (rawAgent) {
+            memAgent = rawAgent;
+            if (!global.__inMemoryAgents) global.__inMemoryAgents = [];
+            global.__inMemoryAgents.push(memAgent);
+          }
         }
       }
     } catch(e) { console.log('MongoDB agent fallback:', e.message); }
