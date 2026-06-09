@@ -58,6 +58,36 @@ router.post('/', auth, async function(req, res) {
       console.error('MongoDB feedback store failed:', e.message);
     }
 
+    // Send email notification to admin
+    try {
+      var nodemailer = require('nodemailer');
+      var transporter = null;
+      if (process.env.SMTP_HOST) {
+        transporter = nodemailer.createTransport({
+          host: process.env.SMTP_HOST,
+          port: parseInt(process.env.SMTP_PORT || '587'),
+          secure: process.env.SMTP_SECURE === 'true',
+          auth: { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS }
+        });
+      }
+      if (transporter) {
+        var agentName = req.agent.name || req.agent.slug || 'Unknown Agent';
+        
+        await transporter.sendMail({
+          from: '"Viewing.One Feedback" <bookings@viewing.one>',
+          to: 'geofryjetson@proton.me',
+          subject: '💬 Feedback: ' + agentName,
+          html: '<h2>💬 New Feedback</h2>' +
+            '<p><strong>From:</strong> ' + agentName + '</p>' +
+            '<p><strong>Time:</strong> ' + new Date(feedback.createdAt).toLocaleString() + '</p>' +
+            '<hr><p>' + feedback.message.replace(/\n/g, '<br>') + '</p>'
+        });
+        console.log('Feedback email sent to geofryjetson@proton.me');
+      }
+    } catch(e) {
+      console.error('Feedback email notification failed:', e.message);
+    }
+
     res.json({ success: true, message: 'Feedback received' });
   } catch(e) {
     console.error('Feedback error:', e);
