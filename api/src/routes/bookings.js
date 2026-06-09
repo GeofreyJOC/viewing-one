@@ -161,7 +161,30 @@ router.post('/', async (req, res) => {
     }
 
     // In-memory fallback
-    const prop = global.__inMemoryProperties?.find(p => p._id === propertyId);
+    var prop = global.__inMemoryProperties?.find(p => String(p._id) === propertyId || p.id === propertyId);
+    if (!prop) {
+      // Fallback: try MongoDB directly
+      try {
+        var mP = typeof global.getMongoDbPromise === 'function' ? global.getMongoDbPromise() : null;
+        if (mP) {
+          var mDbP = await mP;
+          if (mDbP) {
+            var findId = propertyId;
+            var findQ = /^[0-9a-f]{24}$/i.test(findId)
+              ? { _id: new (require('mongodb').ObjectId)(findId) }
+              : { _id: findId };
+            var mDoc = await mDbP.collection('properties').findOne(findQ);
+            if (mDoc) {
+              mDoc._id = String(mDoc._id);
+              prop = mDoc;
+              // Cache in memory for this instance
+              if (!global.__inMemoryProperties) global.__inMemoryProperties = [];
+              global.__inMemoryProperties.push(mDoc);
+            }
+          }
+        }
+      } catch(e2) { console.error('Booking MongoDB fallback error:', e2.message); }
+    }
     if (!prop) {
       return res.status(404).json({ success: false, message: 'Property not found' });
     }
