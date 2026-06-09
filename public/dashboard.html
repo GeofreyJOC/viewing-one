@@ -433,6 +433,82 @@
 <!-- Toast -->
 <div class="toast" id="toast"></div>
 
+<!-- Onboarding Card -->
+<div id="onboardingCard" style="display:none;">
+    <style>
+        #onboardingOverlay {
+            position:fixed; top:0; left:0; right:0; bottom:0;
+            background:rgba(0,0,0,0.5); z-index:999; display:flex;
+            align-items:center; justify-content:center; padding:24px;
+        }
+        #onboardingCard {
+            background:white; border-radius:16px; max-width:520px; width:100%;
+            padding:32px; box-shadow:0 8px 40px rgba(0,0,0,0.15); position:relative;
+        }
+        #onboardingCard h2 { font-size:22px; margin-bottom:4px; }
+        #onboardingCard .sub { color:#888; font-size:14px; margin-bottom:20px; }
+        #onboardingCard .step {
+            display:flex; gap:14px; margin-bottom:16px; padding:12px; border-radius:10px;
+        }
+        #onboardingCard .step:hover { background:#f4f6fa; }
+        #onboardingCard .num {
+            width:32px; height:32px; background:#4f46e5; color:white; border-radius:50%;
+            display:flex; align-items:center; justify-content:center; font-weight:700; font-size:14px; flex-shrink:0;
+        }
+        #onboardingCard .step-text { flex:1; }
+        #onboardingCard .step-text strong { display:block; font-size:14px; }
+        #onboardingCard .step-text p { font-size:13px; color:#888; margin-top:2px; }
+        #onboardingCard .close-btn {
+            width:100%; padding:12px; background:#4f46e5; color:white; border:none;
+            border-radius:8px; font-size:15px; font-weight:600; cursor:pointer; margin-top:8px;
+        }
+        #onboardingCard .close-btn:hover { background:#4338ca; }
+        #onboardingCard .skip {
+            display:block; text-align:center; margin-top:10px; font-size:13px;
+            color:#888; cursor:pointer; background:none; border:none; width:100%;
+        }
+        #onboardingCard .skip:hover { color:#555; }
+        #onboardingCard .link { color:#4f46e5; text-decoration:none; }
+        #onboardingCard .link:hover { text-decoration:underline; }
+    </style>
+    <div id="onboardingOverlay">
+        <div>
+            <h2>🎉 Welcome to Viewing.One!</h2>
+            <p class="sub">Your account is ready. Here's how to get started:</p>
+            <div class="step">
+                <div class="num">1</div>
+                <div class="step-text">
+                    <strong>Add your listings</strong>
+                    <p>Paste a Property24 or Private Property URL in the <strong>Add Listing</strong> tab, or forward listing emails to <strong>listings@viewing.one</strong></p>
+                </div>
+            </div>
+            <div class="step">
+                <div class="num">2</div>
+                <div class="step-text">
+                    <strong>Set your availability</strong>
+                    <p>Go to the <strong>Time Slots</strong> tab and create viewing slots for each property</p>
+                </div>
+            </div>
+            <div class="step">
+                <div class="num">3</div>
+                <div class="step-text">
+                    <strong>Share your agent page</strong>
+                    <p>Your page is at <a href="" id="onboardingPageLink" class="link" target="_blank"></a> — send this to clients so they can book viewings</p>
+                </div>
+            </div>
+            <div class="step">
+                <div class="num">4</div>
+                <div class="step-text">
+                    <strong>Get notified</strong>
+                    <p>We'll email you whenever someone books a viewing. Check the <strong>Bookings</strong> tab to manage them</p>
+                </div>
+            </div>
+            <button class="close-btn" onclick="dismissOnboarding()">Got it, let's go! 🚀</button>
+            <button class="skip" onclick="dismissOnboarding()">Dismiss</button>
+        </div>
+    </div>
+</div>
+
 <script>
 var API = (window.location.hostname.includes('viewing.one') && !window.location.hostname.includes('vercel.app')) ? 'https://viewing-one.vercel.app' : '';
 
@@ -447,6 +523,9 @@ var API = (window.location.hostname.includes('viewing.one') && !window.location.
     url.searchParams.delete('token');
     url.searchParams.delete('registered');
     window.history.replaceState({}, '', url);
+  }
+  if (urlParams.get('registered') === '1') {
+    localStorage.setItem('showOnboarding', 'true');
   }
 })();
 
@@ -1392,9 +1471,25 @@ function escapeHtml(t) {
     return d.innerHTML;
 }
 
+function dismissOnboarding() {
+    document.getElementById('onboardingCard').style.display = 'none';
+    localStorage.removeItem('showOnboarding');
+}
+
 // Init
 loadData();
 loadBookings();
+
+// Show onboarding if just registered
+if (localStorage.getItem('showOnboarding') === 'true') {
+    var slug = (agent && (agent.slug || agent.id)) || '';
+    var link = document.getElementById('onboardingPageLink');
+    if (link) {
+        link.textContent = 'viewing.one/' + slug;
+        link.href = 'https://viewing.one/' + slug;
+    }
+    document.getElementById('onboardingCard').style.display = 'block';
+}
 
 // Refresh time slots when tab is shown
 var switchingToSlots = false;

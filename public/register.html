@@ -107,6 +107,13 @@
 
     <input type="hidden" id="plan" value="pro">
 
+    <div class="form-group" style="margin-bottom:8px;">
+        <label style="display:flex;align-items:flex-start;gap:8px;font-weight:400;font-size:13px;color:#555;cursor:pointer;">
+            <input type="checkbox" id="termsCheck" style="margin-top:2px;width:16px;height:16px;">
+            <span>I have read and agree to the <a href="/terms.html" target="_blank" style="color:#4f46e5;text-decoration:underline;">Terms of Service</a></span>
+        </label>
+    </div>
+
     <div class="error" id="errorMsg"></div>
     <div class="success" id="successMsg">Account created! Redirecting to your dashboard...</div>
 
@@ -166,6 +173,12 @@ async function doRegister() {
         return;
     }
 
+    if (!document.getElementById('termsCheck').checked) {
+        errorEl.textContent = 'You must agree to the Terms of Service to register';
+        errorEl.style.display = 'block';
+        return;
+    }
+
     errorEl.style.display = 'none';
     btn.disabled = true;
     btn.textContent = 'Creating your account...';
@@ -180,7 +193,8 @@ async function doRegister() {
                 password: password,
                 companyName: companyName || name,
                 phone: phone,
-                plan: selectedPlan
+                plan: selectedPlan,
+                termsAccepted: true
             })
         });
         var data = await resp.json();

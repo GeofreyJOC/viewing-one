@@ -19,11 +19,17 @@ const inMemoryAgents = global.__inMemoryAgents;
 // POST /api/auth/register
 router.post('/register', async (req, res) => {
   try {
-    const { name, email, password, companyName, phone, website, plan } = req.body;
+    const { name, email, password, companyName, phone, website, plan, termsAccepted } = req.body;
 
     if (!name || !email || !password) {
       return res.status(400).json({
         success: false, message: 'Name, email, and password are required'
+      });
+    }
+
+    if (!termsAccepted) {
+      return res.status(400).json({
+        success: false, message: 'You must accept the Terms of Service to register'
       });
     }
 
@@ -93,6 +99,53 @@ router.post('/register', async (req, res) => {
         (new Agent(agent)).save().catch(function(e){});
       }
     } catch(e){}
+
+    // Send welcome email
+    try {
+      var nodemailer = require('nodemailer');
+      var smtpTransporter = null;
+      if (process.env.SMTP_HOST) {
+        smtpTransporter = nodemailer.createTransport({
+          host: process.env.SMTP_HOST,
+          port: parseInt(process.env.SMTP_PORT || '587'),
+          secure: process.env.SMTP_SECURE === 'true',
+          auth: { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS }
+        });
+      }
+      if (smtpTransporter) {
+        var agentPageUrl = 'https://viewing.one/' + slug;
+        console.log('Sending welcome email to', normalizedEmail);
+        await smtpTransporter.sendMail({
+          from: '"Viewing.One" <bookings@viewing.one>',
+          to: normalizedEmail,
+          subject: 'Welcome to Viewing.One, ' + name + '!',
+          html: '<div style="font-family:sans-serif;max-width:600px;margin:0 auto;">' +
+            '<h2 style="color:#4f46e5;">Welcome to Viewing.One ' + name + '! 🎉</h2>' +
+            '<p>Your account is now active. Here is everything you need to get started:</p>' +
+            '<table style="width:100%;border-collapse:collapse;margin:16px 0;">' +
+            '<tr><td style="padding:8px 12px;background:#f4f6fa;border-radius:8px 0 0 8px;"><strong>Your Agent Page</strong></td>' +
+            '<td style="padding:8px 12px;background:#f4f6fa;border-radius:0 8px 8px 0;"><a href="' + agentPageUrl + '" style="color:#4f46e5;">' + agentPageUrl + '</a></td></tr>' +
+            '<tr><td style="padding:8px 12px;"><strong>Dashboard</strong></td>' +
+            '<td style="padding:8px 12px;"><a href="https://viewing.one/dashboard.html" style="color:#4f46e5;">viewing.one/dashboard</a></td></tr>' +
+            '<tr><td style="padding:8px 12px;background:#f4f6fa;border-radius:8px 0 0 8px;"><strong>Email Support</strong></td>' +
+            '<td style="padding:8px 12px;background:#f4f6fa;border-radius:0 8px 8px 0;"><a href="mailto:bookings@viewing.one" style="color:#4f46e5;">bookings@viewing.one</a></td></tr>' +
+            '</table>' +
+            '<h3 style="color:#333;">Quick Start</h3>' +
+            '<ol style="color:#555;line-height:1.8;">' +
+            '<li><strong>Add listings</strong> — Paste a Property24 or Private Property URL on your Dashboard, or forward listing emails to <strong>listings@viewing.one</strong></li>' +
+            '<li><strong>Set viewing slots</strong> — Go to the Time Slots tab to set when you are available for viewings</li>' +
+            '<li><strong>Share your page</strong> — Send your agent page link to clients. They can pick a time and book instantly</li>' +
+            '<li><strong>Get notified</strong> — We email you whenever someone books a viewing</li>' +
+            '</ol>' +
+            '<hr style="border:none;border-top:1px solid #eee;margin:20px 0;">' +
+            '<p style="color:#888;font-size:13px;">Need help? Reply to this email or contact us at bookings@viewing.one</p>' +
+            '</div>'
+        });
+        console.log('Welcome email sent to ' + normalizedEmail);
+      }
+    } catch(e) {
+      console.error('Welcome email send failed:', e.message);
+    }
 
     const token = jwt.sign({ id: agentId.toString(), email: normalizedEmail }, JWT_SECRET, { expiresIn: '30d' });
 
