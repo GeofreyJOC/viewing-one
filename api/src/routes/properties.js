@@ -204,19 +204,17 @@ router.get('/', async (req, res) => {
       }
     } catch(e) {}
 
-    // In-memory / tmp fallback — used only when MongoDB is unreachable
-    var props = global.__inMemoryProperties || [];
-    if (!props.length) {
-      try { props = JSON.parse(require('fs').readFileSync('/tmp/properties.json','utf8')); } catch(e){}
+    // In-memory / tmp fallback — only if MongoDB never connected at all
+    if (!db) {
+      var props = global.__inMemoryProperties || [];
+      if (!props.length) {
+        try { props = JSON.parse(require('fs').readFileSync('/tmp/properties.json','utf8')); } catch(e){}
+      }
+      props = deduplicateProperties(props);
+      return res.json({ success: true, properties: props, fromCache: true });
     }
-    // Check if we DO have a valid MongoDB connection that returned empty — trust it
-    if (db) {
-      // MongoDB is connected but returned 0 results — that IS the truth
-      props = [];
-    }
-    // Deduplicate by sourceUrl (handles /tmp cache vs MongoDB mismatch on warm instances)
-    props = deduplicateProperties(props);
-    res.json({ success: true, properties: props });
+    // MongoDB connected but returned empty — that IS the truth, no fallback
+    res.json({ success: true, properties: [] });
   } catch (error) {
     console.error('List properties error:', error);
     res.status(500).json({ success: false, message: 'Server error' });

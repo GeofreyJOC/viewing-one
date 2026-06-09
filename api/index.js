@@ -78,32 +78,37 @@ let dbStatus = 'in-memory';
 let mongoClient = null;
 // Lazy MongoDB connection - starts immediately on cold start
 global.getMongoDbPromise = function getMongoDbPromise() {
-  // If already resolving, return it
-  if (global.__mongoDbPromise) return global.__mongoDbPromise;
+  // If already resolving AND not failed yet, return it
+  if (global.__mongoDbPromise && !global.__mongoDbFailed) return global.__mongoDbPromise;
+  // If previous attempt failed, retry
+  if (global.__mongoDbFailed) {
+    global.__mongoDbPromise = null;
+    global.__mongoDbFailed = false;
+  }
   // Create a lazy promise that fires immediately
   global.__mongoDbPromise = new Promise(function(resolve) {
-    try {
-      var MongoClient = require('mongodb').MongoClient;
-      var uri = process.env.MONGODB_URI;
-      if (!uri || !uri.startsWith('mongodb')) {
-        resolve(null);
-        return;
-      }
-      console.log('MongoDB connecting...');
-      
-      // Try SRV first, then fall back to non-SRV shard hostnames
-      async function tryConnect(mongoUri) {
-        try {
-          var c = new MongoClient(mongoUri, { serverSelectionTimeoutMS: 5000, connectTimeoutMS: 5000 });
-          await c.connect();
-          return c;
-        } catch(e) {
-          console.log('MongoDB attempt failed:', (e.message || '').slice(0, 80));
-          return null;
+    (async function() {
+      try {
+        var MongoClient = require('mongodb').MongoClient;
+        var uri = process.env.MONGODB_URI;
+        if (!uri || !uri.startsWith('mongodb')) {
+          resolve(null);
+          return;
         }
-      }
-      
-      (async function() {
+        console.log('MongoDB connecting...');
+        
+        // Try SRV first, then fall back to non-SRV shard hostnames
+        async function tryConnect(mongoUri) {
+          try {
+            var c = new MongoClient(mongoUri, { serverSelectionTimeoutMS: 8000, connectTimeoutMS: 8000 });
+            await c.connect();
+            return c;
+          } catch(e) {
+            console.log('MongoDB attempt failed:', (e.message || '').slice(0, 80));
+            return null;
+          }
+        }
+        
         var client = await tryConnect(uri);
         if (!client && uri.startsWith('mongodb+srv')) {
           // Non-SRV fallback with known shard hostnames
@@ -111,21 +116,29 @@ global.getMongoDbPromise = function getMongoDbPromise() {
           var creds = uri.substring(0, atIdx + 1).replace('mongodb+srv://', 'mongodb://');
           var shardUri = creds + 'ac-mwb77et-shard-00-00.dwom1k2.mongodb.net:27017,ac-mwb77et-shard-00-01.dwom1k2.mongodb.net:27017,ac-mwb77et-shard-00-02.dwom1k2.mongodb.net:27017/viewingone?ssl=true&replicaSet=atlas-coeo9w-shard-0&retryWrites=true&w=majority';
           client = await tryConnect(shardUri);
+          // Also try direct connection without shard
+          if (!client) {
+            var directUri = creds + 'clustervo.dwom1k2.mongodb.net:27017/viewingone?ssl=true&retryWrites=true&w=majority';
+            client = await tryConnect(directUri);
+          }
         }
         
         if (client) {
           dbStatus = 'connected';
           console.log('MongoDB connected!');
-          // Use the same database name as email-inbound ('viewingone')
+          global.__mongoDbFailed = false;
           resolve(client.db('viewingone'));
         } else {
+          global.__mongoDbFailed = true;
+          console.log('MongoDB: all connection attempts failed');
           resolve(null);
         }
-      })();
-    } catch(e) {
-      console.log('MongoDB error:', (e.message || '').slice(0, 80));
-      resolve(null);
-    }
+      } catch(e) {
+        global.__mongoDbFailed = true;
+        console.log('MongoDB error:', (e.message || '').slice(0, 80));
+        resolve(null);
+      }
+    })();
   });
   return global.__mongoDbPromise;
 }
