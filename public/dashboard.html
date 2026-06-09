@@ -155,6 +155,7 @@
     <div class="nav-item" onclick="switchTab('slots')">⏰ Time Slots</div>
     <div class="nav-item" onclick="switchTab('add')">➕ Add Listing</div>
     <div class="nav-item" onclick="switchTab('profile')">👤 My Profile</div>
+    <div class="nav-item" onclick="switchTab('feedback')">💬 Feedback</div>
     <div class="user-info" id="userInfo">
         <strong id="userName">Agent</strong>
         <span id="userEmail"></span>
@@ -174,6 +175,7 @@
         <div class="tab" onclick="switchTab('bookings')">📅 Bookings</div>
         <div class="tab" onclick="switchTab('slots')">⏰ Time Slots</div>
         <div class="tab" onclick="switchTab('add')">➕ Add Listing</div>
+<div class="tab" onclick="switchTab('feedback')">💬 Feedback</div>
     </div>
 
     <!-- Listings Tab -->
@@ -352,6 +354,23 @@
             </div>
         </div>
     </div>
+
+    <!-- Feedback Tab -->
+    <div class="tab-content" id="tab-feedback">
+        <div class="card">
+            <h3>💬 Send Feedback</h3>
+            <p style="font-size:14px;color:#888;margin-bottom:16px;">Help us improve Viewing.One. What's working, what's not, what would you like to see?</p>
+            <textarea id="feedbackInput" placeholder="Type your feedback here..." style="width:100%;min-height:140px;padding:12px 14px;border:1px solid #ddd;border-radius:8px;font-size:14px;resize:vertical;font-family:inherit;line-height:1.5;"></textarea>
+            <div style="margin-top:12px;display:flex;gap:10px;align-items:center;">
+                <button class="btn btn-primary" onclick="submitFeedback()">Send Feedback</button>
+                <span id="feedbackStatus" style="font-size:13px;color:#888;"></span>
+            </div>
+        </div>
+        <div class="card" id="feedbackHistoryCard" style="display:none;">
+            <h3>📜 Your Previous Feedback</h3>
+            <div id="feedbackHistory"></div>
+        </div>
+    </div>
 </div>
 
 <!-- Slot Modal -->
@@ -491,7 +510,8 @@ function switchTab(name) {
         name === 'listings' ? 'Manage your listings' :
         name === 'bookings' ? 'View visitor bookings' :
         name === 'slots' ? 'Set your viewing availability' :
-        name === 'profile' ? 'Edit your profile and brand settings' : 'Add a new listing';
+        name === 'profile' ? 'Edit your profile and brand settings' :
+        name === 'feedback' ? 'Share your thoughts on Viewing.One' : 'Add a new listing';
 }
 
 function doLogout() {
@@ -1314,6 +1334,62 @@ async function loadBookings() {
     } catch(e) {
         console.error('Load bookings error:', e);
     }
+}
+
+async function submitFeedback() {
+    var input = document.getElementById('feedbackInput');
+    var status = document.getElementById('feedbackStatus');
+    var msg = input.value.trim();
+    if (!msg) { status.textContent = 'Please write something first.'; status.style.color = '#e74c3c'; return; }
+    status.textContent = 'Sending...';
+    status.style.color = '#888';
+    try {
+        var resp = await fetch(API + '/api/feedback', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + getToken() },
+            body: JSON.stringify({ message: msg })
+        });
+        var data = await resp.json();
+        if (data.success) {
+            input.value = '';
+            status.textContent = '✅ Thanks for your feedback!';
+            status.style.color = '#22c55e';
+            loadFeedback();
+        } else {
+            status.textContent = '⚠️ ' + (data.message || 'Something went wrong.');
+            status.style.color = '#e74c3c';
+        }
+    } catch(e) {
+        status.textContent = '⚠️ Could not send feedback.';
+        status.style.color = '#e74c3c';
+    }
+}
+
+async function loadFeedback() {
+    try {
+        var resp = await fetch(API + '/api/feedback', {
+            headers: { 'Authorization': 'Bearer ' + getToken() }
+        });
+        var data = await resp.json();
+        if (data.success && data.feedback && data.feedback.length > 0) {
+            var card = document.getElementById('feedbackHistoryCard');
+            card.style.display = 'block';
+            var list = document.getElementById('feedbackHistory');
+            list.innerHTML = data.feedback.reverse().map(function(f) {
+                var d = new Date(f.createdAt || Date.now());
+                return '<div style="padding:12px;border:1px solid #eef2ff;border-radius:8px;margin-bottom:8px;">' +
+                    '<p style="font-size:14px;">' + escapeHtml(f.message) + '</p>' +
+                    '<p style="font-size:11px;color:#aaa;margin-top:6px;">' + d.toLocaleDateString() + ' ' + d.toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'}) + '</p>' +
+                    '</div>';
+            }).join('');
+        }
+    } catch(e) {}
+}
+
+function escapeHtml(t) {
+    var d = document.createElement('div');
+    d.appendChild(document.createTextNode(t));
+    return d.innerHTML;
 }
 
 // Init
