@@ -301,10 +301,9 @@ function extractFields(req) {
 
 function extractUrls(text) {
   if (!text) return [];
-  var processed = text.replace(/\n/g, '').replace(/\r/g, '');
-  processed = processed.replace(/\s+/g, ' ');
+  var processed = text.replace(/\r/g, '');
   var patterns = [
-    /https?:\/\/(?:www\.)?privateproperty\.co\.za(?:\/[a-z0-9-]+){4,}(?:\/[a-zA-Z0-9-]+)?/gi
+    /https?:\/\/(?:www\.)?privateproperty\.co\.za(?:\/[a-z0-9-]+){4,}(?:\/[a-zA-Z0-9-]+)?(?=\s|$|[>"'\).,;:\n\r]|['’])/gi
   ];
   var found = [];
   for (var pi = 0; pi < patterns.length; pi++) {
