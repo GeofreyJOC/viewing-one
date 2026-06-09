@@ -191,6 +191,24 @@ router.post('/', async (req, res) => {
           });
         });
       } catch(e) { console.error('Gist request save exception:', e.message); }
+      
+      // Sync viewingRequests to MongoDB for cross-instance visibility
+      try {
+        var pR = typeof global.getMongoDbPromise === 'function' ? global.getMongoDbPromise() : null;
+        if (pR) {
+          var mDbR = await pR;
+          if (mDbR) {
+            var propIdStrR = String(prop._id || prop.id);
+            var matchQueryR = /^[0-9a-f]{24}$/i.test(propIdStrR)
+              ? { _id: new (require('mongodb').ObjectId)(propIdStrR) }
+              : { _id: propIdStrR };
+            await mDbR.collection('properties').updateOne(
+              matchQueryR,
+              { $set: { viewingRequests: prop.viewingRequests || [] } }
+            );
+          }
+        }
+      } catch(e) { console.error('MongoDB request sync error:', e.message); }
 
       // Send notification email async
       notifyAgentBooking(agentEmail, prop.title, visitorName, visitorWhatsApp, visitorEmail, 'To be arranged', 'To be arranged');
@@ -238,6 +256,24 @@ router.post('/', async (req, res) => {
         fs.writeFileSync('/tmp/properties.json', JSON.stringify(existing));
       } catch(e2) {}
     } catch(e){ console.error('Gist booking save exception:', e.message); }
+    
+    // Sync booking to MongoDB for cross-instance visibility
+    try {
+      var p = typeof global.getMongoDbPromise === 'function' ? global.getMongoDbPromise() : null;
+      if (p) {
+        var mDb = await p;
+        if (mDb) {
+          var propIdStr = String(prop._id || prop.id);
+          var matchQuery = /^[0-9a-f]{24}$/i.test(propIdStr)
+            ? { _id: new (require('mongodb').ObjectId)(propIdStr) }
+            : { _id: propIdStr };
+          await mDb.collection('properties').updateOne(
+            matchQuery,
+            { $set: { viewingSlots: prop.viewingSlots || [], viewingRequests: prop.viewingRequests || [] } }
+          );
+        }
+      }
+    } catch(e2) { console.error('MongoDB booking sync error:', e2.message); }
 
     // Send notification email async
     notifyAgentBooking(agentEmail, prop.title, visitorName, visitorWhatsApp, visitorEmail, slot.date, slot.time);
