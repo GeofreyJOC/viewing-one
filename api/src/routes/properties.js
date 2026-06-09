@@ -258,6 +258,25 @@ router.delete('/:id', async (req, res) => {
       }
     }
 
+    if (!found) {
+      // Fallback: try MongoDB directly
+      try {
+        if (typeof global.getMongoDbPromise === 'function') {
+          var mConn = await global.getMongoDbPromise();
+          if (mConn && mConn.db) {
+            var mDb = mConn.db;
+            var delResult = await mDb.collection('properties').deleteOne({ _id: req.params.id });
+            if (delResult.deletedCount > 0) {
+              found = true;
+              console.log('Deleted from MongoDB fallback:', req.params.id);
+            }
+          }
+        }
+      } catch(e) {
+        console.error('MongoDB fallback delete failed:', e.message);
+      }
+    }
+
     if (found) {
       res.json({ success: true, message: 'Property deleted' });
     } else {
