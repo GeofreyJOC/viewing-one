@@ -54,7 +54,7 @@ async function notifyAgentBooking(agentEmail, propertyTitle, visitorName, visito
   try {
     var isRequest = (date === 'To be arranged');
     await transporter.sendMail({
-      from: '"Viewing.One" <feedback@viewing.one>',
+      from: '"Viewing.One" <bookings@viewing.one>',
       to: agentEmail,
       subject: (isRequest ? 'New Viewing Request: ' : 'New Viewing Booking: ') + propertyTitle,
       html: '<h2>' + (isRequest ? 'New Viewing Request' : 'New Viewing Booking') + '</h2>' +
