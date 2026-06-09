@@ -261,8 +261,8 @@ router.delete('/:id', async (req, res) => {
       try {
         if (typeof global.getMongoDbPromise === 'function') {
           var mConn = await global.getMongoDbPromise();
-          if (mConn && mConn.db) {
-            var mDb = mConn.db;
+          if (mConn) {
+            var mDb = mConn;
             var delResult = await mDb.collection('properties').deleteOne({ _id: req.params.id });
             if (delResult.deletedCount > 0) {
               found = true;
@@ -361,8 +361,8 @@ router.post('/:id/slots', async (req, res) => {
       try {
         if (typeof global.getMongoDbPromise === 'function') {
           var mConn = await global.getMongoDbPromise();
-          if (mConn && mConn.db) {
-            var mDb = mConn.db;
+          if (mConn) {
+            var mDb = mConn;
             var findId = req.params.id;
             var findQuery = /^[0-9a-f]{24}$/i.test(findId)
               ? { _id: new ObjectId(findId) }
@@ -460,8 +460,8 @@ router.delete('/:id/slots/:slotId', async (req, res) => {
       try {
         if (typeof global.getMongoDbPromise === 'function') {
           var mConn = await global.getMongoDbPromise();
-          if (mConn && mConn.db) {
-            var mDb = mConn.db;
+          if (mConn) {
+            var mDb = mConn;
             var delId = req.params.id;
             var delQuery = {};
             if (/^[0-9a-f]{24}$/i.test(delId)) {
