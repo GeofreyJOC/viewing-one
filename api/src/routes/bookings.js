@@ -124,9 +124,9 @@ router.post('/', async (req, res) => {
           });
         }
 
-        const slot = property.viewingSlots.find(function(s) { return String(s.id) === slotId || String(s._id) === slotId; });
+        const slot = property.viewingSlots.find(function(s) { var sid = (s._doc && s._doc.id) || s.id || s._id; return sid === slotId || String(s._id) === slotId; });
         if (!slot) {
-          return res.status(404).json({ success: false, message: 'Viewing slot not found' });
+          throw new Error('Slot not found in Mongoose, falling through');
         }
 
         // Allow multiple bookings per slot
