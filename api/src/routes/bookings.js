@@ -124,7 +124,7 @@ router.post('/', async (req, res) => {
           });
         }
 
-        const slot = property.viewingSlots.id(slotId);
+        const slot = property.viewingSlots.find(function(s) { return String(s.id) === slotId || String(s._id) === slotId; });
         if (!slot) {
           return res.status(404).json({ success: false, message: 'Viewing slot not found' });
         }
