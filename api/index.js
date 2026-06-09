@@ -380,10 +380,15 @@ app.get('/:slug', async (req, res, next) => {
     } catch(e) { console.log('Gist agent fallback:', e.message); }
   }
   
-  // Tertiary fallback: try MongoDB
+  // Tertiary fallback: try MongoDB (poll up to 8s for cold starts)
   if (!memAgent) {
     try {
-      var mDb2 = await dbWithTimeout(4000);
+      var mDb2 = await getMongoDbPromise();
+      var mStart = Date.now();
+      while (!mDb2 && Date.now() - mStart < 8000) {
+        await new Promise(function(r) { setTimeout(r, 500); });
+        mDb2 = await getMongoDbPromise();
+      }
       if (mDb2) {
         var rawAgent = await mDb2.collection('agents').findOne({ slug: slug, isActive: true });
         if (rawAgent) {
