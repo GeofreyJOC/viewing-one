@@ -363,7 +363,11 @@ router.post('/:id/slots', async (req, res) => {
           var mConn = await global.getMongoDbPromise();
           if (mConn && mConn.db) {
             var mDb = mConn.db;
-            var mProp = await mDb.collection('properties').findOne({ _id: req.params.id });
+            var findId = req.params.id;
+            var findQuery = /^[0-9a-f]{24}$/i.test(findId)
+              ? { _id: new ObjectId(findId) }
+              : { _id: findId };
+            var mProp = await mDb.collection('properties').findOne(findQuery);
             if (mProp) {
               foundProp = mProp;
               // Pull into in-memory
@@ -402,17 +406,21 @@ router.post('/:id/slots', async (req, res) => {
       ]);
       if (db) {
         try {
-          var result = await db.collection('properties').updateOne(
-            { _id: String(foundProp._id) },
-            { $push: { viewingSlots: slot } }
-          );
-          if (result.modifiedCount === 0) {
-            try {
-              await db.collection('properties').updateOne(
-                { _id: foundProp._id },
-                { $push: { viewingSlots: slot } }
-              );
-            } catch(e2) {}
+          var propIdStr = String(foundProp._id);
+          // Try ObjectId first if it looks like a 24-hex ObjectId
+          var result = null;
+          if (/^[0-9a-f]{24}$/i.test(propIdStr)) {
+            result = await db.collection('properties').updateOne(
+              { _id: new ObjectId(propIdStr) },
+              { $push: { viewingSlots: slot } }
+            );
+          }
+          // Fallback to string match (for UUID or other string _ids)
+          if (!result || result.modifiedCount === 0) {
+            result = await db.collection('properties').updateOne(
+              { _id: propIdStr },
+              { $push: { viewingSlots: slot } }
+            );
           }
         } catch(e) {}
       }
@@ -454,8 +462,15 @@ router.delete('/:id/slots/:slotId', async (req, res) => {
           var mConn = await global.getMongoDbPromise();
           if (mConn && mConn.db) {
             var mDb = mConn.db;
+            var delId = req.params.id;
+            var delQuery = {};
+            if (/^[0-9a-f]{24}$/i.test(delId)) {
+              delQuery._id = new ObjectId(delId);
+            } else {
+              delQuery._id = delId;
+            }
             var mResult = await mDb.collection('properties').updateOne(
-              { _id: req.params.id },
+              delQuery,
               { $pull: { viewingSlots: { id: req.params.slotId } } }
             );
             if (mResult.modifiedCount > 0) {
