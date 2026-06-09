@@ -127,18 +127,18 @@ router.post('/register', async (req, res) => {
             '<td style="padding:8px 12px;background:#f4f6fa;border-radius:0 8px 8px 0;"><a href="' + agentPageUrl + '" style="color:#4f46e5;">' + agentPageUrl + '</a></td></tr>' +
             '<tr><td style="padding:8px 12px;"><strong>Dashboard</strong></td>' +
             '<td style="padding:8px 12px;"><a href="https://viewing.one/dashboard.html" style="color:#4f46e5;">viewing.one/dashboard</a></td></tr>' +
-            '<tr><td style="padding:8px 12px;background:#f4f6fa;border-radius:8px 0 0 8px;"><strong>Email Support</strong></td>' +
+            '<tr><td style="padding:8px 12px;background:#f4f6fa;border-radius:8px 0 0 8px;"><strong>Support</strong></td>' +
             '<td style="padding:8px 12px;background:#f4f6fa;border-radius:0 8px 8px 0;"><a href="mailto:bookings@viewing.one" style="color:#4f46e5;">bookings@viewing.one</a></td></tr>' +
             '</table>' +
             '<h3 style="color:#333;">Quick Start</h3>' +
             '<ol style="color:#555;line-height:1.8;">' +
-            '<li><strong>Add listings</strong> — Paste a Property24 or Private Property URL on your Dashboard, or forward listing emails to <strong>listings@viewing.one</strong></li>' +
+            '<li><strong>Add listings</strong> — Paste a Private Property URL on your Dashboard, or email a listing URL to <strong>listings@viewing.one</strong> (e.g. https://www.privateproperty.co.za/listings/...)</li>' +
             '<li><strong>Set viewing slots</strong> — Go to the Time Slots tab to set when you are available for viewings</li>' +
             '<li><strong>Share your page</strong> — Send your agent page link to clients. They can pick a time and book instantly</li>' +
             '<li><strong>Get notified</strong> — We email you whenever someone books a viewing</li>' +
             '</ol>' +
             '<hr style="border:none;border-top:1px solid #eee;margin:20px 0;">' +
-            '<p style="color:#888;font-size:13px;">Need help? Reply to this email or contact us at bookings@viewing.one</p>' +
+            '<p style="color:#888;font-size:13px;">Need help? Contact us at <a href="mailto:admin@viewing.one" style="color:#4f46e5;">admin@viewing.one</a></p>' +
             '</div>'
         });
         console.log('Welcome email sent to ' + normalizedEmail);
