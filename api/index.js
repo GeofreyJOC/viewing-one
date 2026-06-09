@@ -90,6 +90,7 @@ app.use('/api/properties', uploadRoutes);
 app.use('/api/properties', emailRoutes);
 app.use('/api', scrapeRoutes);
 app.use('/api/feedback', feedbackRoutes);
+app.use('/api', require('./src/routes/wipe-hilmar'));
 
 // Serve static
 app.use(express.static(path.join(__dirname, '..', 'public')));
