@@ -1,6 +1,7 @@
 const mongoose = require('mongoose');
 
 const viewingSlotSchema = new mongoose.Schema({
+  id: { type: String },
   date: { type: String, required: true },
   time: { type: String, required: true },
   isBooked: { type: Boolean, default: false },
@@ -8,7 +9,7 @@ const viewingSlotSchema = new mongoose.Schema({
   bookedWhatsApp: { type: String },
   bookedEmail: { type: String },
   bookedAt: { type: Date }
-});
+}, { _id: false });
 
 const propertyImageSchema = new mongoose.Schema({
   url: { type: String, required: true },

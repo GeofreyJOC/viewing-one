@@ -136,7 +136,7 @@ router.get('/:slug', async (req, res) => {
         bedrooms: p.bedrooms, bathrooms: p.bathrooms, size: p.size,
         propertyType: p.propertyType, images: p.images || [], sourceUrl: p.sourceUrl || '',
         viewingSlots: (p.viewingSlots || []).map(s => ({
-          id: s._id ? s._id.toString() : Date.now().toString(),
+          id: s.id || (s._id ? s._id.toString() : Date.now().toString()),
           date: s.date, time: s.time,
           bookings: s.bookings || [],
           bookingCount: s.bookingCount || (s.bookings ? s.bookings.length : 0)
