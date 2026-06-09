@@ -125,12 +125,16 @@ router.post('/login', async (req, res) => {
     // 1. Try in-memory (fast, reliable)
     agent = inMemoryAgents.find(a => a.email === normalizedEmail);
     
-    // 2. Try global Mongoose connection (getMongoDbPromise)
-    if (!agent) {
+    // 2. Also check if in-memory agent has a valid password; if not it came from seed and we need MongoDB
+    if (!agent || !agent.password || typeof agent.password !== 'string' || agent.password.length < 20) {
+      if (agent && (!agent.password || agent.password.length < 20)) agent = null;
       try {
         if (typeof global.getMongoDbPromise === 'function') {
-          var db = await global.getMongoDbPromise();
-          if (db) {
+          var db = await Promise.race([
+            global.getMongoDbPromise(),
+            new Promise(function(r) { setTimeout(function() { r('__TIMEOUT__'); }, 6000); })
+          ]);
+          if (db && db !== '__TIMEOUT__') {
             agent = await db.collection('agents').findOne({ email: normalizedEmail });
             if (agent) {
               if (agent._id && agent._id.toString) agent._id = agent._id.toString();
