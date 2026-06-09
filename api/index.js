@@ -583,41 +583,4 @@ app.get('/api/db-status', async (req, res) => {
   res.json(info);
 });
 
-// TEMP: Update password in MongoDB
-app.post('/api/debug/update-password', async (req, res) => {
-  try {
-    var email = req.body.email || 'hilmar@viewing.one';
-    var pwd = req.body.password;
-    if (!pwd) { res.json({error:'password required'}); return; }
-    var bcrypt = require('bcryptjs');
-    var hash = await bcrypt.hash(pwd, 10);
-    // Try MongoDB
-    var mDb = null;
-    try {
-      var mp = getMongoDbPromise();
-      if (mp) {
-        mDb = await Promise.race([mp, new Promise(function(r) { setTimeout(function() { r('__TIMEOUT__'); }, 8000); })]);
-      }
-    } catch(e) {}
-    if (mDb && mDb !== '__TIMEOUT__') {
-      await mDb.collection('agents').updateOne({ email: email }, { $set: { password: hash } });
-      // Also update seed-agents.json on /tmp
-      var fs = require('fs');
-      var seedPath = path.join(__dirname, 'seed-agents.json');
-      if (fs.existsSync(seedPath)) {
-        var seed = JSON.parse(fs.readFileSync(seedPath, 'utf8'));
-        seed.forEach(function(a) { if (a.email === email) a.password = hash; });
-        fs.writeFileSync(seedPath, JSON.stringify(seed, null, 2));
-        // Also update in-memory
-        if (global.__inMemoryAgents) {
-          global.__inMemoryAgents.forEach(function(a) { if (a.email === email) a.password = hash; });
-        }
-      }
-      res.json({ success: true, message: 'Password updated in MongoDB + seed + in-memory', hash: hash.substring(0,20)+'...' });
-    } else {
-      res.json({ error: 'MongoDB not connected', hash: hash.substring(0,20)+'...' });
-    }
-  } catch(e) { res.json({error:e.message}); }
-});
-
 module.exports = app;
