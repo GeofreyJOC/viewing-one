@@ -508,6 +508,27 @@ async function loadData() {
         });
         var data = await resp.json();
         if (data.success && data.properties && data.properties.length > 0) {
+            // Preserve local viewingSlots/viewingRequests that may not be in API response yet
+            var oldByPid = {};
+            if (properties && properties.length) {
+              for (var oi = 0; oi < properties.length; oi++) {
+                var oid = properties[oi]._id || properties[oi].id;
+                if (oid) oldByPid[oid] = properties[oi];
+              }
+            }
+            for (var ni = 0; ni < data.properties.length; ni++) {
+              var np = data.properties[ni];
+              var nid = np._id || np.id;
+              if (nid && oldByPid[nid]) {
+                var old = oldByPid[nid];
+                if (old.viewingSlots && old.viewingSlots.length > 0 && (!np.viewingSlots || np.viewingSlots.length === 0)) {
+                  np.viewingSlots = old.viewingSlots;
+                }
+                if (old.viewingRequests && old.viewingRequests.length > 0 && (!np.viewingRequests || np.viewingRequests.length === 0)) {
+                  np.viewingRequests = old.viewingRequests;
+                }
+              }
+            }
             properties = data.properties;
             renderProperties();
         } else if (data.properties && data.properties.length === 0) {
@@ -1308,7 +1329,7 @@ switchTab = function(name) {
 };
 
 // Refresh every 30s
-setInterval(function() { loadData(); loadBookings(); }, 10000);
+setInterval(function() { loadData(); loadBookings(); }, 30000);
 </script>
 </body>
 </html>
