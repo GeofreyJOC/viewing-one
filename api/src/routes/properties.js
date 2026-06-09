@@ -352,11 +352,40 @@ router.post('/:id/slots', async (req, res) => {
 
     // In-memory first (authoritative source), with async MongoDB backup
     var idx = -1;
+    var foundProp = null;
     if (global.__inMemoryProperties) {
       idx = global.__inMemoryProperties.findIndex(function(p) { return String(p._id) === req.params.id || p.id === req.params.id; });
+      if (idx !== -1) foundProp = global.__inMemoryProperties[idx];
     }
     
-    if (idx === -1) {
+    if (!foundProp) {
+      // Fallback: try MongoDB directly
+      try {
+        if (typeof global.getMongoDbPromise === 'function') {
+          var mConn = await global.getMongoDbPromise();
+          if (mConn && mConn.db) {
+            var mDb = mConn.db;
+            var mProp = await mDb.collection('properties').findOne({ _id: req.params.id });
+            if (mProp) {
+              foundProp = mProp;
+              // Pull into in-memory
+              if (!global.__inMemoryProperties) global.__inMemoryProperties = [];
+              var existingIdx = global.__inMemoryProperties.findIndex(function(p) { return String(p._id) === String(foundProp._id); });
+              if (existingIdx === -1) {
+                global.__inMemoryProperties.push(foundProp);
+                idx = global.__inMemoryProperties.length - 1;
+              } else {
+                idx = existingIdx;
+              }
+            }
+          }
+        }
+      } catch(e) {
+        console.error('MongoDB fallback for slot add:', e.message);
+      }
+    }
+    
+    if (!foundProp) {
       return res.status(404).json({ success: false, message: 'Property not found' });
     }
     
@@ -366,11 +395,6 @@ router.post('/:id/slots', async (req, res) => {
     global.__inMemoryProperties[idx].viewingSlots.push(slot);
     global.__inMemoryProperties[idx].viewingSlots.sort(function(a, b) { return a.date.localeCompare(b.date) || a.time.localeCompare(b.time); });
     persistCache();
-    // Persist to Gist
-    try {
-      var gistSlot = require('../../gist-persistence');
-      gistSlot.saveProperty(global.__inMemoryProperties[idx], function(){});
-    } catch(e){}
     
     // Fire-and-forget MongoDB write (never blocks response)
     (async function() {
@@ -378,14 +402,13 @@ router.post('/:id/slots', async (req, res) => {
         var db = await getDb();
         if (db) {
           var result = await db.collection('properties').updateOne(
-            { _id: req.params.id },
+            { _id: String(foundProp._id) },
             { $push: { viewingSlots: slot } }
           );
           if (result.modifiedCount === 0) {
-            // Try ObjectId fallback
             try {
               await db.collection('properties').updateOne(
-                { _id: new ObjectId(req.params.id) },
+                { _id: foundProp._id },
                 { $push: { viewingSlots: slot } }
               );
             } catch(e2) {}
@@ -395,8 +418,6 @@ router.post('/:id/slots', async (req, res) => {
     })();
     
     return res.json({ success: true, message: 'Slot added', slot: slot });
-
-    res.status(404).json({ success: false, message: 'Property not found' });
   } catch (error) {
     console.error('Add slot error:', error);
     res.status(500).json({ success: false, message: 'Server error', error: error.message });
@@ -410,6 +431,7 @@ router.delete('/:id/slots/:slotId', async (req, res) => {
     if (!token) return res.status(401).json({ success: false, message: 'Auth required' });
 
     var removed = false;
+    var targetPropId = req.params.id;
 
     // In-memory first
     if (global.__inMemoryProperties) {
@@ -420,29 +442,44 @@ router.delete('/:id/slots/:slotId', async (req, res) => {
         if (global.__inMemoryProperties[idx].viewingSlots.length < before) {
           removed = true;
           persistCache();
-          
-          // Fire-and-forget MongoDB
-          (async function() {
-            try {
-              var db = await getDb();
-              if (db) {
-                var result = await db.collection('properties').updateOne(
-                  { _id: req.params.id },
-                  { $pull: { viewingSlots: { id: req.params.slotId } } }
-                );
-                if (result.modifiedCount === 0) {
-                  try {
-                    await db.collection('properties').updateOne(
-                      { _id: new ObjectId(req.params.id) },
-                      { $pull: { viewingSlots: { id: req.params.slotId } } }
-                    );
-                  } catch(e2) {}
-                }
-              }
-            } catch(e) {}
-          })();
         }
       }
+    }
+
+    if (!removed) {
+      // Fallback: try MongoDB directly
+      try {
+        if (typeof global.getMongoDbPromise === 'function') {
+          var mConn = await global.getMongoDbPromise();
+          if (mConn && mConn.db) {
+            var mDb = mConn.db;
+            var mResult = await mDb.collection('properties').updateOne(
+              { _id: req.params.id },
+              { $pull: { viewingSlots: { id: req.params.slotId } } }
+            );
+            if (mResult.modifiedCount > 0) {
+              removed = true;
+            }
+          }
+        }
+      } catch(e) {
+        console.error('MongoDB fallback for slot delete:', e.message);
+      }
+    }
+    
+    // Fire-and-forget MongoDB sync (always runs if removed in-memory)
+    if (removed) {
+      (async function() {
+        try {
+          var db = await getDb();
+          if (db) {
+            await db.collection('properties').updateOne(
+              { _id: req.params.id },
+              { $pull: { viewingSlots: { id: req.params.slotId } } }
+            );
+          }
+        } catch(e) {}
+      })();
     }
 
     if (removed) {
