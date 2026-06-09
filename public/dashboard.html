@@ -694,8 +694,17 @@ async function saveNewSlot() {
         if (data.success) {
             showToast('Slot added for ' + date + ' at ' + time);
             closeModal('addSlotModal');
-            // Refresh data
-            await loadData();
+            // Update local state directly — don't re-fetch (cross-instance cache issue)
+            if (data.slot) {
+              for (var pi = 0; pi < properties.length; pi++) {
+                if ((properties[pi]._id || properties[pi].id) === slotPropId) {
+                  if (!properties[pi].viewingSlots) properties[pi].viewingSlots = [];
+                  properties[pi].viewingSlots.push(data.slot);
+                  properties[pi].viewingSlots.sort(function(a, b) { return a.date.localeCompare(b.date) || a.time.localeCompare(b.time); });
+                  break;
+                }
+              }
+            }
             loadTimeSlots();
         } else {
             showToast(data.message || 'Failed to add slot', 'error');

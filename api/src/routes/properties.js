@@ -394,11 +394,14 @@ router.post('/:id/slots', async (req, res) => {
     global.__inMemoryProperties[idx].viewingSlots.sort(function(a, b) { return a.date.localeCompare(b.date) || a.time.localeCompare(b.time); });
     persistCache();
     
-    // Fire-and-forget MongoDB write (never blocks response)
-    (async function() {
-      try {
-        var db = await getDb();
-        if (db) {
+    // Sync MongoDB write (short timeout — if it works, cross-instance GET sees it)
+    try {
+      var db = await Promise.race([
+        getDb(),
+        new Promise(function(re) { setTimeout(function() { re(null); }, 2000); })
+      ]);
+      if (db) {
+        try {
           var result = await db.collection('properties').updateOne(
             { _id: String(foundProp._id) },
             { $push: { viewingSlots: slot } }
@@ -411,9 +414,9 @@ router.post('/:id/slots', async (req, res) => {
               );
             } catch(e2) {}
           }
-        }
-      } catch(e) {}
-    })();
+        } catch(e) {}
+      }
+    } catch(e) {}
     
     return res.json({ success: true, message: 'Slot added', slot: slot });
   } catch (error) {
