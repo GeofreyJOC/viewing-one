@@ -536,6 +536,22 @@
                 if (data.properties && data.properties.length > 0) {
                     document.getElementById('propertiesSection').style.display = 'block';
                     renderProperties(data.properties);
+                    
+                    // Background fetch: refresh with latest data from API (catches slot changes on cross-instance)
+                    setTimeout(async function() {
+                        try {
+                            var apiBase = window.location.hostname.includes('viewing.one') && !window.location.hostname.includes('vercel.app') 
+                              ? 'https://viewing-one.vercel.app' 
+                              : '';
+                            var freshRes = await fetch(apiBase + '/api/agents/' + slug);
+                            if (freshRes.ok) {
+                                var freshData = await freshRes.json();
+                                if (freshData && freshData.success && freshData.properties && freshData.properties.length > 0) {
+                                    renderProperties(freshData.properties);
+                                }
+                            }
+                        } catch(e) {}
+                    }, 800);
                 } else {
                     document.getElementById('emptyState').style.display = 'block';
                 }
