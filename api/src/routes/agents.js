@@ -14,10 +14,10 @@ try {
 // Raw MongoDB connection (shared via global cached promise from api/index.js)
 function getDb() {
   if (!global.__mongoDbPromise) return null;
-  // Never block more than 4s waiting for MongoDB
+  // Never block more than 8s waiting for MongoDB (Vercel limit is 10s)
   return Promise.race([
     global.__mongoDbPromise,
-    new Promise(function(r) { setTimeout(function() { r(null); }, 4000); })
+    new Promise(function(r) { setTimeout(function() { r(null); }, 8000); })
   ]);
 }
 
@@ -72,13 +72,18 @@ router.get('/:slug', async (req, res) => {
     }
 
     // 3b. From MongoDB raw (append to in-memory)
+    // Use whichever agent has data (mongoAgent if available, fallback to memAgent's _id)
+    var agentIdForQuery = null;
+    if (mongoAgent) agentIdForQuery = mongoAgent._id;
+    else if (memAgent) agentIdForQuery = memAgent._id;
+    
     try {
       var mongoPromise2 = getDb();
       if (mongoPromise2) {
         var db2 = await mongoPromise2;
-        if (db2 && mongoAgent) {
+        if (db2 && agentIdForQuery) {
           var mongoProps = await db2.collection('properties')
-            .find({ agentId: mongoAgent._id, status: 'active' })
+            .find({ agentId: agentIdForQuery, status: 'active' })
             .sort({ createdAt: -1 })
             .toArray();
           for (var p of mongoProps) {
@@ -94,8 +99,8 @@ router.get('/:slug', async (req, res) => {
 
     // 3c. From Mongoose (MongoDB via model) as last resort
     try {
-      if (Agent && Property && mongoAgent) {
-        var mongooseProps = await Property.find({ agentId: mongoAgent._id, status: 'active' }).sort({ createdAt: -1 }).lean();
+      if (Agent && Property && agentIdForQuery) {
+        var mongooseProps = await Property.find({ agentId: agentIdForQuery, status: 'active' }).sort({ createdAt: -1 }).lean();
         for (var p of mongooseProps) {
           var idStr = p._id.toString();
           if (!seenIds.has(idStr)) {
