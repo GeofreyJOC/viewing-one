@@ -175,30 +175,6 @@ function dbWithTimeout(ms) {
 // Kick it off immediately (non-blocking - returns a lazy promise)
 getMongoDbPromise();
 
-// Debug: get password hash for seed file
-app.get('/api/debug/get-seed-hash', async (req, res) => {
-  try {
-    var mDb = null;
-    var mp = getMongoDbPromise();
-    if (mp) {
-      mDb = await Promise.race([
-        mp,
-        new Promise(function(r) { setTimeout(function() { r('__TIMEOUT__'); }, 8000); })
-      ]);
-    }
-    if (mDb && mDb !== '__TIMEOUT__' && mDb.collection) {
-      var agent = await mDb.collection('agents').findOne({ email: 'hilmar@viewing.one' });
-      if (agent && agent.password && agent.password.length >= 20) {
-        res.json({ password: agent.password, hash: true, length: agent.password.length });
-      } else {
-        res.json({ error: 'Agent found but no valid password', pw: (agent||{}).password ? 'exists' : 'missing' });
-      }
-    } else {
-      res.json({ error: 'MongoDB not connected within 8s' });
-    }
-  } catch(e) { res.json({ error: e.message }); }
-});
-
 // Debug - check DB connection (behind require)
 
 // Debug: test PP scraping from Vercel
