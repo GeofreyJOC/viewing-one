@@ -13,8 +13,12 @@ try {
 
 // Raw MongoDB connection (shared via global cached promise from api/index.js)
 function getDb() {
-  if (global.__mongoDbPromise) return global.__mongoDbPromise;
-  return null;
+  if (!global.__mongoDbPromise) return null;
+  // Never block more than 4s waiting for MongoDB
+  return Promise.race([
+    global.__mongoDbPromise,
+    new Promise(function(r) { setTimeout(function() { r(null); }, 4000); })
+  ]);
 }
 
 // In-memory collections (shared with other routes via global)

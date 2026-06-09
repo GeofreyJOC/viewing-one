@@ -100,7 +100,7 @@ global.getMongoDbPromise = function getMongoDbPromise() {
         // Try SRV first, then fall back to non-SRV shard hostnames
         async function tryConnect(mongoUri) {
           try {
-            var c = new MongoClient(mongoUri, { serverSelectionTimeoutMS: 8000, connectTimeoutMS: 8000 });
+            var c = new MongoClient(mongoUri, { serverSelectionTimeoutMS: 3000, connectTimeoutMS: 3000 });
             await c.connect();
             return c;
           } catch(e) {
@@ -141,6 +141,16 @@ global.getMongoDbPromise = function getMongoDbPromise() {
     })();
   });
   return global.__mongoDbPromise;
+}
+
+// Timeout wrapper — never blocks more than 4s waiting for MongoDB
+function dbWithTimeout(ms) {
+  var promise = getMongoDbPromise();
+  if (!promise) return Promise.resolve(null);
+  return Promise.race([
+    promise,
+    new Promise(function(r) { setTimeout(function() { r(null); }, ms || 4000); })
+  ]);
 }
 
 // Kick it off immediately (non-blocking - returns a lazy promise)
@@ -373,7 +383,7 @@ app.get('/:slug', async (req, res, next) => {
   // Tertiary fallback: try MongoDB
   if (!memAgent) {
     try {
-      var mDb2 = await getMongoDbPromise();
+      var mDb2 = await dbWithTimeout(4000);
       if (mDb2) {
         var rawAgent = await mDb2.collection('agents').findOne({ slug: slug, isActive: true });
         if (rawAgent) {
@@ -389,7 +399,7 @@ app.get('/:slug', async (req, res, next) => {
     // Always try MongoDB first for fresh data (cross-instance consistency)
     var memProps = [];
     try {
-      var mDb = await getMongoDbPromise();
+      var mDb = await dbWithTimeout(4000);
       if (mDb) {
         var mProps = await mDb.collection('properties').find({ agentId: memAgent._id.toString(), status: 'active' }).toArray();
         if (mProps && mProps.length > 0) {
