@@ -581,9 +581,12 @@ router.delete('/:email', async (req, res) => {
     // Try MongoDB
     try {
       if (typeof global.getMongoDbPromise === 'function') {
-        const mongo = await global.getMongoDbPromise();
-        if (mongo) {
-          const result = await mongo.collection('agents').deleteOne({ email: email });
+        var mongoDb = await Promise.race([
+          global.getMongoDbPromise(),
+          new Promise(function(r) { setTimeout(function() { r(null); }, 9500); })
+        ]);
+        if (mongoDb) {
+          const result = await mongoDb.collection('agents').deleteOne({ email: email });
           if (result.deletedCount > 0) deleted = true;
         }
       }
