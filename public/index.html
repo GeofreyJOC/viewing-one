@@ -279,6 +279,14 @@
       letter-spacing: 1.5px; text-transform: uppercase;
       color: rgba(201,169,110,0.4); margin-bottom: 14px;
     }
+    .mockup-propimg {
+      border-radius: 12px; overflow: hidden;
+      margin-bottom: 14px; aspect-ratio: 16/10;
+    }
+    .mockup-propimg img {
+      width: 100%; height: 100%; object-fit: cover;
+      display: block;
+    }
     .mockup-agent {
       font-size: 16px; font-weight: 600; color: #e8e4df;
       margin-bottom: 2px;
@@ -477,8 +485,7 @@
       line-height: 1.7;
     }
 
-    /* ===== Video Section ===== */
-    /* ===== Pricing ===== */
+/* ===== Pricing ===== */
     .pricing { background: #0d0d0d; }
     .pricing-grid {
       display: grid;
@@ -948,16 +955,16 @@
               <div class="mockup-notch"></div>
               <div class="mockup-screen">
                 <div class="mockup-brand">Viewing.One</div>
+                <div class="mockup-propimg">
+                  <img src="https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=400&q=80" alt="Property" loading="lazy">
+                </div>
                 <div class="mockup-agent">Jane Doe</div>
                 <div class="mockup-prop">42 Main Road, Sandton</div>
                 <div class="mockup-label">Available Viewings</div>
                 <div class="mockup-slots">
                   <div class="mockup-slot"><span class="mockup-day">Mon</span><span class="mockup-time">09:00</span><span class="mockup-arrw">›</span></div>
-                  <div class="mockup-slot"><span class="mockup-day">Mon</span><span class="mockup-time">14:00</span><span class="mockup-arrw">›</span></div>
-                  <div class="mockup-slot"><span class="mockup-day">Tue</span><span class="mockup-time">10:00</span><span class="mockup-arrw">›</span></div>
                   <div class="mockup-slot"><span class="mockup-day">Wed</span><span class="mockup-time">11:00</span><span class="mockup-arrw">›</span></div>
-                  <div class="mockup-slot"><span class="mockup-day">Wed</span><span class="mockup-time">16:00</span><span class="mockup-arrw">›</span></div>
-                  <div class="mockup-slot"><span class="mockup-day">Thu</span><span class="mockup-time">09:00</span><span class="mockup-arrw">›</span></div>
+                  <div class="mockup-slot"><span class="mockup-day">Fri</span><span class="mockup-time">14:00</span><span class="mockup-arrw">›</span></div>
                 </div>
                 <div class="mockup-bookbtn">Book a Viewing</div>
                 <div class="mockup-footer">Tap a time slot to book</div>
@@ -966,8 +973,6 @@
             <div class="mockup-float mockup-float-1">📅</div>
             <div class="mockup-float mockup-float-2">✅</div>
           </div>
-      </div>
-    </div>
   </section>
 
   <!-- ===== HOW IT WORKS ===== -->
