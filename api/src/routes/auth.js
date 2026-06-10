@@ -583,7 +583,7 @@ router.delete('/:email', async (req, res) => {
       if (typeof global.getMongoDbPromise === 'function') {
         const mongo = await global.getMongoDbPromise();
         if (mongo) {
-          const result = await mongo.collectionon('agents').deleteOne({ email: email });
+          const result = await mongo.collection('agents').deleteOne({ email: email });
           if (result.deletedCount > 0) deleted = true;
         }
       }
@@ -594,6 +594,7 @@ router.delete('/:email', async (req, res) => {
       const before = global.__inMemoryAgents.length;
       global.__inMemoryAgents = global.__inMemoryAgents.filter(a => a.email !== email);
       if (global.__inMemoryAgents.length < before) deleted = true;
+      try { require('fs').writeFileSync('/tmp/agents.json', JSON.stringify(global.__inMemoryAgents)); } catch(e){}
     }
     
     res.json({ success: true, message: deleted ? 'Agent deleted: ' + email : 'Agent not found: ' + email, deleted: deleted });
