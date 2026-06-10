@@ -408,7 +408,7 @@ app.get('/:slug', async (req, res, next) => {
       if (mDbPromise) {
         var mDb2 = await Promise.race([
           mDbPromise,
-          new Promise(function(r) { setTimeout(function() { r('__TIMEOUT__'); }, 8000); })
+          new Promise(function(r) { setTimeout(function() { r('__TIMEOUT__'); }, 10000); })
         ]);
         if (mDb2 && mDb2 !== '__TIMEOUT__') {
           var rawAgent = await mDb2.collection('agents').findOne({ slug: slug, isActive: true });

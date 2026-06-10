@@ -14,10 +14,10 @@ try {
 // Raw MongoDB connection (shared via global cached promise from api/index.js)
 function getDb() {
   if (!global.__mongoDbPromise) return null;
-  // Never block more than 8s waiting for MongoDB (Vercel limit is 10s)
+  // Never block more than 9.5s waiting for MongoDB (Vercel limit is 10s)
   return Promise.race([
     global.__mongoDbPromise,
-    new Promise(function(r) { setTimeout(function() { r(null); }, 8000); })
+    new Promise(function(r) { setTimeout(function() { r(null); }, 9500); })
   ]);
 }
 
@@ -46,6 +46,21 @@ router.get('/:slug', async (req, res) => {
         }
       }
     } catch (mongoErr) {}
+
+    // 2b. Retry MongoDB if first attempt failed — promise might have resolved by now
+    if (!mongoAgent && !memAgent && typeof global.getMongoDbPromise === 'function') {
+      try {
+        var retryDb = await Promise.race([
+          global.getMongoDbPromise(),
+          new Promise(function(r) { setTimeout(function() { r(null); }, 9500); })
+        ]);
+        if (retryDb) {
+          var retryMongo = await retryDb.collection('agents').findOne({ slug: slug, isActive: true });
+          if (retryMongo) mongoAgent = retryMongo;
+          mongoAgent = retryMongo || mongoAgent;
+        }
+      } catch (e) {}
+    }
 
     // Pick whichever agent we found
     agent = mongoAgent || memAgent;
