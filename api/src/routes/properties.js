@@ -188,8 +188,8 @@ router.get('/', async (req, res) => {
       // Try MongoDB first
       var db = await getDb();
       if (db) {
-        // Query by agentId as string, or just get all active properties
-        var props = await db.collection('properties').find({ status: 'active' }).sort({ createdAt: -1 }).toArray();
+        // Query by agentId to ensure data isolation
+        var props = await db.collection('properties').find({ status: 'active', agentId: agentId }).sort({ createdAt: -1 }).toArray();
         if (props && props.length > 0) {
           props = props.map(function(p) {
             p._id = p._id.toString ? p._id.toString() : p._id;
@@ -210,6 +210,7 @@ router.get('/', async (req, res) => {
       if (!props.length) {
         try { props = JSON.parse(require('fs').readFileSync('/tmp/properties.json','utf8')); } catch(e){}
       }
+      props = props.filter(function(p) { return p.agentId === agentId; });
       props = deduplicateProperties(props);
       return res.json({ success: true, properties: props, fromCache: true });
     }
