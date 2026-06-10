@@ -221,6 +221,7 @@ router.post('/login', async (req, res) => {
           }
         } catch(e2) {}
       }
+    }
     
         // 2b. Direct MongoDB connection (bypass Mongoose, uses raw MongoClient)
     if (!agent) {
