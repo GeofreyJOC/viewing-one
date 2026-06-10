@@ -704,6 +704,124 @@
     .reveal-delay-2 { transition-delay: 0.2s; }
     .reveal-delay-3 { transition-delay: 0.3s; }
 
+    /* ===== Demo Player ===== */
+    .demo-section { background: #0d0d0d; padding-bottom: 5rem; }
+    .demo-player {
+      display: flex; justify-content: center; margin-top: 2rem;
+    }
+    .demo-mockup {
+      background: #1a1a1a; border-radius: 20px; border: 1px solid #2a2a2a;
+      width: 100%; max-width: 420px; overflow: hidden;
+      box-shadow: 0 24px 80px rgba(0,0,0,0.5);
+    }
+    .demo-mockup-header {
+      display: flex; align-items: center; gap: 8px;
+      padding: 14px 16px; background: #222; border-bottom: 1px solid #333;
+    }
+    .demo-dot { width: 10px; height: 10px; border-radius: 50%; }
+    .demo-dot:nth-child(1) { background: #ff5f57; }
+    .demo-dot:nth-child(2) { background: #febc2e; }
+    .demo-dot:nth-child(3) { background: #28c840; }
+    .demo-title {
+      flex: 1; text-align: center; font-size: 12px; font-weight: 600;
+      color: rgba(232,228,223,0.4); letter-spacing: 0.5px;
+    }
+    .demo-screen {
+      padding: 32px 28px 24px; min-height: 360px;
+      display: flex; flex-direction: column;
+    }
+    .demo-slide { flex: 1; }
+    .demo-step { text-align: center; }
+    .demo-step-icon { font-size: 3rem; margin-bottom: 12px; }
+    .demo-step h3 {
+      font-size: 1.2rem; font-weight: 600; color: #e8e4df; margin-bottom: 8px;
+    }
+    .demo-step p {
+      font-size: 0.88rem; color: rgba(232,228,223,0.55); line-height: 1.5;
+      margin-bottom: 20px;
+    }
+    .demo-step p strong { color: #c9a96e; }
+    .demo-input-show {
+      display: flex; align-items: center; gap: 8px;
+      background: rgba(255,255,255,0.04); border: 1px solid rgba(232,228,223,0.12);
+      border-radius: 10px; padding: 12px 16px;
+      animation: demoPulse 2s ease-in-out infinite;
+    }
+    .demo-url-icon { font-size: 1.2rem; }
+    .demo-url-text {
+      font-size: 0.75rem; color: rgba(232,228,223,0.5);
+      overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    }
+    .demo-calendar-show {
+      display: flex; gap: 8px; justify-content: center; flex-wrap: wrap;
+    }
+    .demo-cal-day {
+      background: rgba(255,255,255,0.04); border: 1px solid rgba(232,228,223,0.08);
+      border-radius: 10px; padding: 10px 14px; text-align: center; min-width: 80px;
+    }
+    .demo-cal-day.demo-cal-active {
+      border-color: #c9a96e; background: rgba(201,169,110,0.08);
+      animation: demoPulse 2s ease-in-out infinite;
+    }
+    .demo-cal-num { display: block; font-size: 0.7rem; color: rgba(232,228,223,0.4); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px; }
+    .demo-cal-time { display: block; font-size: 0.8rem; color: #e8e4df; padding: 2px 0; }
+    .demo-link-show {
+      display: flex; align-items: center; justify-content: center; gap: 8px;
+      background: rgba(201,169,110,0.1); border: 1px solid rgba(201,169,110,0.25);
+      border-radius: 10px; padding: 12px 20px;
+      font-size: 0.95rem; font-weight: 500; color: #c9a96e;
+      animation: demoPulse 2s ease-in-out infinite;
+    }
+    .demo-link-icon { font-size: 1.1rem; }
+    .demo-booking-show { display: flex; justify-content: center; }
+    .demo-booking-card {
+      background: rgba(16,185,129,0.08); border: 1px solid rgba(16,185,129,0.25);
+      border-radius: 12px; padding: 16px;
+      text-align: left; max-width: 280px;
+      animation: demoPulse 2s ease-in-out infinite;
+    }
+    .demo-booking-card strong {
+      display: block; color: #10b981; font-size: 0.9rem; margin-bottom: 6px;
+    }
+    .demo-booking-card span {
+      display: block; font-size: 0.8rem; color: rgba(232,228,223,0.6); margin-bottom: 10px; line-height: 1.4;
+    }
+    .demo-whatsapp-btn {
+      background: #25D366; color: white; text-align: center;
+      padding: 8px 16px; border-radius: 8px; font-size: 0.8rem; font-weight: 600;
+    }
+    .demo-progress {
+      display: flex; justify-content: center; gap: 8px;
+      margin-bottom: 16px;
+    }
+    .demo-dot-nav {
+      width: 10px; height: 10px; border-radius: 50%;
+      background: rgba(232,228,223,0.2); cursor: pointer;
+      transition: all 0.3s ease;
+    }
+    .demo-dot-nav.active { background: #c9a96e; width: 28px; border-radius: 5px; }
+    .demo-controls {
+      display: flex; gap: 12px; justify-content: center;
+    }
+    .demo-btn {
+      padding: 10px 24px; border-radius: 8px;
+      font-family: 'Inter', sans-serif; font-size: 0.85rem; font-weight: 600;
+      border: none; cursor: pointer; transition: all 0.3s ease;
+    }
+    .demo-next {
+      background: #c9a96e; color: #0d0d0d;
+    }
+    .demo-next:hover { background: #d4b87a; }
+    .demo-prev {
+      background: rgba(255,255,255,0.06); color: rgba(232,228,223,0.6);
+    }
+    .demo-prev:hover { background: rgba(255,255,255,0.1); color: #e8e4df; }
+
+    @keyframes demoPulse {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.02); }
+    }
+
     /* ===== Responsive ===== */
     @media (max-width: 900px) {
       .hero-grid { grid-template-columns: 1fr; gap: 3rem; }
@@ -712,6 +830,7 @@
       .pricing-grid { grid-template-columns: 1fr; max-width: 480px; }
       .footer-grid { grid-template-columns: 1fr 1fr; }
       .footer-brand { grid-column: 1 / -1; }
+      .demo-mockup { max-width: 380px; }
     }
 
     @media (max-width: 768px) {
@@ -888,6 +1007,87 @@
       <div class="video-placeholder">
         <div class="play-icon">▶</div>
         <p>Coming Soon</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== DEMO PLAYER ===== -->
+  <section class="demo-section" id="demo">
+    <div class="container reveal">
+      <div class="section-header">
+        <span class="section-tag">See It In Action</span>
+        <h2>Your booking page in 30 seconds</h2>
+        <p>Watch how Viewing.One works — no tech skills needed.</p>
+      </div>
+      <div class="demo-player">
+        <div class="demo-mockup">
+          <div class="demo-mockup-header">
+            <span class="demo-dot"></span>
+            <span class="demo-dot"></span>
+            <span class="demo-dot"></span>
+            <span class="demo-title">Viewing.One</span>
+          </div>
+          <div class="demo-screen">
+            <div class="demo-slide" id="demoSlide">
+              <div class="demo-slide-inner">
+                <!-- Step 1 -->
+                <div class="demo-step" data-step="0">
+                  <div class="demo-step-icon">📋</div>
+                  <h3>Add a Property</h3>
+                  <p>Paste a Private Property URL or email it to <strong>listings@viewing.one</strong> — we pull the details automatically.</p>
+                  <div class="demo-input-show">
+                    <span class="demo-url-icon">🔗</span>
+                    <span class="demo-url-text">https://www.privateproperty.co.za/...</span>
+                  </div>
+                </div>
+                <!-- Step 2 -->
+                <div class="demo-step" data-step="1" style="display:none;">
+                  <div class="demo-step-icon">📅</div>
+                  <h3>Set Your Slots</h3>
+                  <p>Pick your available times in the Time Slots tab. Each property gets its own booking calendar.</p>
+                  <div class="demo-calendar-show">
+                    <div class="demo-cal-day"><span class="demo-cal-num">Mon</span><span class="demo-cal-time">09:00</span><span class="demo-cal-time">14:00</span></div>
+                    <div class="demo-cal-day"><span class="demo-cal-num">Tue</span><span class="demo-cal-time">10:00</span><span class="demo-cal-time">15:00</span></div>
+                    <div class="demo-cal-day demo-cal-active"><span class="demo-cal-num">Wed</span><span class="demo-cal-time">11:00</span><span class="demo-cal-time">16:00</span></div>
+                  </div>
+                </div>
+                <!-- Step 3 -->
+                <div class="demo-step" data-step="2" style="display:none;">
+                  <div class="demo-step-icon">🔗</div>
+                  <h3>Share Your Page</h3>
+                  <p>Send <strong>viewing.one/your-name</strong> to clients. Add it to your property listing descriptions so they find it fast.</p>
+                  <div class="demo-link-show">
+                    <span class="demo-link-icon">🔗</span>
+                    <span>viewing.one/jane-doe</span>
+                  </div>
+                </div>
+                <!-- Step 4 -->
+                <div class="demo-step" data-step="3" style="display:none;">
+                  <div class="demo-step-icon">✅</div>
+                  <h3>Get Booked</h3>
+                  <p>Clients pick a time slot and book instantly. We email you — and you can WhatsApp them from the Bookings tab.</p>
+                  <div class="demo-booking-show">
+                    <div class="demo-booking-card">
+                      <strong>Viewing booked!</strong>
+                      <span>Sarah wants to see 42 Main Rd, Mon 10:00</span>
+                      <div class="demo-whatsapp-btn">💬 WhatsApp Sarah</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="demo-progress">
+              <span class="demo-dot-nav active" data-index="0"></span>
+              <span class="demo-dot-nav" data-index="1"></span>
+              <span class="demo-dot-nav" data-index="2"></span>
+              <span class="demo-dot-nav" data-index="3"></span>
+            </div>
+            <div class="demo-controls">
+              <button class="demo-btn demo-prev" onclick="demoPrev()">← Prev</button>
+              <button class="demo-btn demo-next" onclick="demoNext()">Next →</button>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   </section>
@@ -1093,6 +1293,48 @@
     revealEls.forEach(function(el) {
       observer.observe(el);
     });
+
+    // Demo player
+    var demoStep = 0;
+    var demoTotal = 4;
+    var demoTimer = null;
+
+    function demoShowStep(n) {
+      demoStep = n;
+      var steps = document.querySelectorAll('.demo-step');
+      var dots = document.querySelectorAll('.demo-dot-nav');
+      for (var i = 0; i < steps.length; i++) {
+        steps[i].style.display = i === n ? 'block' : 'none';
+        dots[i].className = 'demo-dot-nav' + (i === n ? ' active' : '');
+      }
+      resetDemoTimer();
+    }
+
+    function demoNext() {
+      demoShowStep((demoStep + 1) % demoTotal);
+    }
+
+    function demoPrev() {
+      demoShowStep((demoStep - 1 + demoTotal) % demoTotal);
+    }
+
+    function resetDemoTimer() {
+      if (demoTimer) clearTimeout(demoTimer);
+      demoTimer = setTimeout(function() {
+        demoNext();
+      }, 5000);
+    }
+
+    // Init demo
+    (function() {
+      var dots = document.querySelectorAll('.demo-dot-nav');
+      for (var i = 0; i < dots.length; i++) {
+        dots[i].addEventListener('click', function() {
+          demoShowStep(parseInt(this.getAttribute('data-index')));
+        });
+      }
+      resetDemoTimer();
+    })();
   </script>
 </body>
 </html>
