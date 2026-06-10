@@ -185,7 +185,7 @@ router.post('/login', async (req, res) => {
         if (typeof global.getMongoDbPromise === 'function') {
           var db = await Promise.race([
             global.getMongoDbPromise(),
-            new Promise(function(r) { setTimeout(function() { r('__TIMEOUT__'); }, 6000); })
+            new Promise(function(r) { setTimeout(function() { r('__TIMEOUT__'); }, 9500); })
           ]);
           if (db && db !== '__TIMEOUT__') {
             agent = await db.collection('agents').findOne({ email: normalizedEmail });
@@ -200,7 +200,27 @@ router.post('/login', async (req, res) => {
           }
         }
       } catch(e) { console.log('Mongoose login fallback error:', e.message); }
-    }
+      
+      // Retry: if first attempt timed out, global promise may have resolved by now
+      if (!agent && typeof global.getMongoDbPromise === 'function') {
+        try {
+          var db2 = await Promise.race([
+            global.getMongoDbPromise(),
+            new Promise(function(r) { setTimeout(function() { r('__TIMEOUT__'); }, 9500); })
+          ]);
+          if (db2 && db2 !== '__TIMEOUT__') {
+            agent = await db2.collection('agents').findOne({ email: normalizedEmail });
+            if (agent) {
+              if (agent._id && agent._id.toString) agent._id = agent._id.toString();
+              if (agent.password) {
+                if (!global.__inMemoryAgents) global.__inMemoryAgents = [];
+                var already2 = global.__inMemoryAgents.find(function(a) { return a._id === agent._id; });
+                if (!already2) global.__inMemoryAgents.push(agent);
+              }
+            }
+          }
+        } catch(e2) {}
+      }
     
         // 2b. Direct MongoDB connection (bypass Mongoose, uses raw MongoClient)
     if (!agent) {
