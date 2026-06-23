@@ -469,8 +469,7 @@
                         var controller = new AbortController();
                         var timeoutId = setTimeout(function() { controller.abort(); }, 25000);
                         
-                        var apiBase = window.location.hostname.includes('viewing.one') && !window.location.hostname.includes('vercel.app') 
-                          ? 'https://viewing-one.vercel.app' 
+                        var apiBase = '' 
                           : '';
                         var res = await fetch(apiBase + '/api/agents/' + slug, { signal: controller.signal });
                         clearTimeout(timeoutId);
@@ -540,9 +539,7 @@
                     // Background fetch: refresh with latest data from API (catches slot changes on cross-instance)
                     setTimeout(async function() {
                         try {
-                            var apiBase = window.location.hostname.includes('viewing.one') && !window.location.hostname.includes('vercel.app') 
-                              ? 'https://viewing-one.vercel.app' 
-                              : '';
+                            var apiBase = '';
                             var freshRes = await fetch(apiBase + '/api/agents/' + slug);
                             if (freshRes.ok) {
                                 var freshData = await freshRes.json();
