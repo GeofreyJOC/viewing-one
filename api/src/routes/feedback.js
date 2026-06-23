@@ -74,7 +74,7 @@ router.post('/', auth, async function(req, res) {
         var agentName = req.agent.name || req.agent.slug || 'Unknown Agent';
         
         await transporter.sendMail({
-          from: '"Viewing.One Feedback" <bookings@viewing.one>',
+          from: '"Viewing.One Feedback" <listings@viewing.one>',
           to: 'geofryjetson@proton.me',
           subject: '💬 Feedback: ' + agentName,
           html: '<h2>💬 New Feedback</h2>' +

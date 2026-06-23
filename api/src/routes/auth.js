@@ -116,7 +116,7 @@ router.post('/register', async (req, res) => {
         var agentPageUrl = 'https://viewing.one/' + slug;
         console.log('Sending welcome email to', normalizedEmail);
         await smtpTransporter.sendMail({
-          from: '"Viewing.One" <bookings@viewing.one>',
+          from: '"Viewing.One" <listings@viewing.one>',
           to: normalizedEmail,
           subject: 'Welcome to Viewing.One, ' + name + '!',
           html: '<div style="font-family:sans-serif;max-width:600px;margin:0 auto;">' +
@@ -128,7 +128,7 @@ router.post('/register', async (req, res) => {
             '<tr><td style="padding:8px 12px;"><strong>Dashboard</strong></td>' +
             '<td style="padding:8px 12px;"><a href="https://viewing.one/dashboard.html" style="color:#4f46e5;">viewing.one/dashboard</a></td></tr>' +
             '<tr><td style="padding:8px 12px;background:#f4f6fa;border-radius:8px 0 0 8px;"><strong>Support</strong></td>' +
-            '<td style="padding:8px 12px;background:#f4f6fa;border-radius:0 8px 8px 0;"><a href="mailto:bookings@viewing.one" style="color:#4f46e5;">bookings@viewing.one</a></td></tr>' +
+            '<td style="padding:8px 12px;background:#f4f6fa;border-radius:0 8px 8px 0;"><a href="mailto:listings@viewing.one" style="color:#4f46e5;">listings@viewing.one</a></td></tr>' +
             '</table>' +
             '<h3 style="color:#333;">Quick Start</h3>' +
             '<ol style="color:#555;line-height:1.8;">' +
