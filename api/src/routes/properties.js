@@ -110,7 +110,7 @@ router.post('/', async (req, res) => {
           var titleMatch = html.match(/<title[^>]*>([^<]+)<\/title>/i);
           if (titleMatch) {
             prop.title = titleMatch[1]
-              .replace(/\s*\|\s*[A-Z]{2}\d+.*$/, '')  // Strip | RR{number} or | T{number}
+              .replace(/\s*\|\s*[A-Z]+\d+.*$/, '')  // Strip | {code}{number} e.g. T4546968
               .replace(/\s*[\-–]\s*Private Property.*$/, '') // Strip - Private Property
               .replace(/\s*\|\s*Private Property.*$/, '') // Strip | Private Property
               .replace(/^[Rr][\d,\s]+\|\s*/, '') // Strip price prefix like "R 3 395 000 | "
