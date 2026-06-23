@@ -148,7 +148,13 @@ global.getMongoDbPromise = function getMongoDbPromise() {
           dbStatus = 'connected';
           console.log('MongoDB connected!');
           global.__mongoDbFailed = false;
-          resolve(client.db('viewingone'));
+          // Extract database name from URI (use default if none specified)
+          var dbName = 'viewingone';
+          try {
+            var uriPath = uri.split('?')[0].split('/');
+            if (uriPath.length > 1 && uriPath[uriPath.length-1]) dbName = uriPath[uriPath.length-1];
+          } catch(e) {}
+          resolve(client.db(dbName));
         } else {
           global.__mongoDbFailed = true;
           console.log('MongoDB: all connection attempts failed');

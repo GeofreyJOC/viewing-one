@@ -84,7 +84,7 @@ router.post('/register', async (req, res) => {
       if (typeof global.getMongoDbPromise === 'function') {
         global.getMongoDbPromise().then(function(conn) {
           if (conn && conn) {
-            conn.db.collection('agents').updateOne(
+            conn.collection('agents').updateOne(
               { email: normalizedEmail },
               { $set: agent },
               { upsert: true }
