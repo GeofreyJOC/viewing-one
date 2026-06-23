@@ -50,17 +50,15 @@ async function resolveAgentEmail(propertyId) {
 }
 
 async function notifyAgentBooking(agentEmail, propertyTitle, visitorName, visitorWhatsApp, visitorEmail, date, time, propertyId) {
-  console.log('notifyAgentBooking called:', { transporter: !!transporter, agentEmail: agentEmail || '(null)', title: propertyTitle, propertyId: propertyId || '(none)' });
-  if (!transporter) { console.log('  -> transporter is null'); return; }
+  if (!transporter) return;
   // If no agentEmail provided, try to resolve from propertyId
   if (!agentEmail && propertyId) {
-    try { agentEmail = await resolveAgentEmail(propertyId); } catch(e) { console.log('  -> resolveAgentEmail error:', e.message); }
+    try { agentEmail = await resolveAgentEmail(propertyId); } catch(e) {}
   }
-  console.log('  -> final agentEmail:', agentEmail || '(null)');
-  if (!agentEmail) { console.log('  -> no agent email, skipping'); return; }
+  if (!agentEmail) return;
   try {
     var isRequest = (date === 'To be arranged');
-    var info = await transporter.sendMail({
+    await transporter.sendMail({
       from: '"Viewing.One" <listings@viewing.one>',
       to: agentEmail,
       subject: (isRequest ? 'New Viewing Request: ' : 'New Viewing Booking: ') + propertyTitle,
@@ -76,10 +74,8 @@ async function notifyAgentBooking(agentEmail, propertyTitle, visitorName, visito
         (visitorEmail ? '<p><strong>Email:</strong> ' + visitorEmail + '</p>' : '') +
         '<hr><p style="color:#888;">Viewing.One - Property Viewing Management</p>'
     });
-    console.log('Booking notification EMAIL SENT:', info.messageId, 'to', agentEmail);
   } catch(e) {
     console.error('Booking notification email error:', e.message);
-    if (e.code) console.error('  code:', e.code);
   }
 }
 
