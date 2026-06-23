@@ -60,7 +60,7 @@ async function notifyAgentBooking(agentEmail, propertyTitle, visitorName, visito
   if (!agentEmail) { console.log('  -> no agent email, skipping'); return; }
   try {
     var isRequest = (date === 'To be arranged');
-    await transporter.sendMail({
+    var info = await transporter.sendMail({
       from: '"Viewing.One" <listings@viewing.one>',
       to: agentEmail,
       subject: (isRequest ? 'New Viewing Request: ' : 'New Viewing Booking: ') + propertyTitle,
@@ -76,8 +76,10 @@ async function notifyAgentBooking(agentEmail, propertyTitle, visitorName, visito
         (visitorEmail ? '<p><strong>Email:</strong> ' + visitorEmail + '</p>' : '') +
         '<hr><p style="color:#888;">Viewing.One - Property Viewing Management</p>'
     });
+    console.log('Booking notification EMAIL SENT:', info.messageId, 'to', agentEmail);
   } catch(e) {
     console.error('Booking notification email error:', e.message);
+    if (e.code) console.error('  code:', e.code);
   }
 }
 
