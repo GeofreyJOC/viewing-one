@@ -170,7 +170,7 @@ router.post('/email-inbound', async (req, res) => {
           bedrooms: scraped.bedrooms || 0,
           bathrooms: scraped.bathrooms || 0,
           size: scraped.size || '',
-          propertyType: scraped.propertyType || 'house',
+          propertyType: scraped.propertyType || '',
           images: scraped.images && scraped.images.length > 0 ? scraped.images.slice(0, 10) : [],
           sourceUrl: url,
           source: 'email',
@@ -321,7 +321,7 @@ function extractUrls(text) {
 }
 
 async function scrapeUrl(url) {
-  var data = { title: "Property listing", price: "", location: "", bedrooms: 0, bathrooms: 0, size: "", propertyType: "house", description: "Imported from " + url, images: [] };
+  var data = { title: "Property listing", price: "", location: "", bedrooms: 0, bathrooms: 0, size: "", propertyType: "", description: "Imported from " + url, images: [] };
   try {
     // Use built-in https (no node-fetch dependency)
     var html = await new Promise(function(resolve, reject) {
