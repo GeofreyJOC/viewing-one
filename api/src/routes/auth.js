@@ -164,6 +164,190 @@ router.post('/register', async (req, res) => {
   }
 });
 
+// POST /api/auth/forgot-password
+router.post('/forgot-password', async (req, res) => {
+  try {
+    const { email } = req.body;
+    if (!email) {
+      return res.status(400).json({ success: false, message: 'Email is required' });
+    }
+
+    const normalizedEmail = email.toLowerCase().trim();
+    
+    // Find agent (check memory, MongoDB, and Mongoose)
+    let agent = inMemoryAgents.find(a => a.email === normalizedEmail);
+    
+    if (!agent) {
+      try {
+        if (typeof global.getMongoDbPromise === 'function') {
+          var db = await Promise.race([
+            global.getMongoDbPromise(),
+            new Promise(function(r) { setTimeout(function() { r('__TIMEOUT__'); }, 5000); })
+          ]);
+          if (db && db !== '__TIMEOUT__') {
+            var mongoAgent = await db.collection('agents').findOne({ email: normalizedEmail });
+            if (mongoAgent) agent = mongoAgent;
+          }
+        }
+      } catch(e) {}
+    }
+    
+    if (!agent) {
+      // Don't reveal whether email exists (security)
+      return res.json({ success: true, message: 'If an account with this email exists, a reset link has been sent.' });
+    }
+    
+    // Generate reset token (valid for 1 hour)
+    var crypto = require('crypto');
+    var resetToken = crypto.randomBytes(32).toString('hex');
+    var resetExpiry = new Date(Date.now() + 3600000); // 1 hour
+    
+    // Store token in MongoDB and memory
+    if (typeof global.getMongoDbPromise === 'function') {
+      global.getMongoDbPromise().then(function(conn) {
+        if (conn) {
+          conn.collection('agents').updateOne(
+            { email: normalizedEmail },
+            { $set: { resetToken: resetToken, resetTokenExpiry: resetExpiry } }
+          ).catch(function(e) {});
+        }
+      }).catch(function(e) {});
+    }
+    
+    // Also update in-memory
+    if (agent) {
+      var memAgent = inMemoryAgents.find(a => a.email === normalizedEmail);
+      if (memAgent) {
+        memAgent.resetToken = resetToken;
+        memAgent.resetTokenExpiry = resetExpiry;
+      }
+    }
+    
+    // Send reset email
+    var resetUrl = 'https://viewing.one/reset-password.html?token=' + resetToken + '&email=' + encodeURIComponent(normalizedEmail);
+    
+    try {
+      var nodemailer = require('nodemailer');
+      var smtpTransporter = null;
+      if (process.env.SMTP_HOST) {
+        smtpTransporter = nodemailer.createTransport({
+          host: process.env.SMTP_HOST,
+          port: parseInt(process.env.SMTP_PORT || '587'),
+          secure: process.env.SMTP_SECURE === 'true',
+          auth: { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS }
+        });
+      }
+      if (smtpTransporter) {
+        smtpTransporter.sendMail({
+          from: '"Viewing.One" <listings@viewing.one>',
+          to: normalizedEmail,
+          subject: 'Reset your Viewing.One password',
+          html: '<div style="font-family:sans-serif;max-width:560px;margin:0 auto;">' +
+            '<h2 style="color:#4f46e5;">Reset your password</h2>' +
+            '<p>You requested a password reset for your Viewing.One account.</p>' +
+            '<p style="margin:20px 0;"><a href="' + resetUrl + '" style="display:inline-block;background:#4f46e5;color:white;padding:12px 28px;border-radius:8px;text-decoration:none;font-weight:600;">Reset Password</a></p>' +
+            '<p style="color:#888;font-size:13px;">This link expires in 1 hour. If you didn\'t request this, you can safely ignore this email.</p>' +
+            '<hr style="border:none;border-top:1px solid #eee;margin:20px 0;">' +
+            '<p style="color:#888;font-size:12px;">Viewing.One — viewing.one</p>' +
+            '</div>'
+        }).catch(function(e) { console.error('Reset email send failed:', e.message); });
+      }
+    } catch(e) { console.error('Reset email setup failed:', e.message); }
+    
+    res.json({ success: true, message: 'If an account with this email exists, a reset link has been sent.' });
+  } catch (error) {
+    console.error('Forgot password error:', error);
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
+});
+
+// POST /api/auth/reset-password
+router.post('/reset-password', async (req, res) => {
+  try {
+    const { token, email, password } = req.body;
+    if (!token || !email || !password) {
+      return res.status(400).json({ success: false, message: 'Token, email, and new password are required' });
+    }
+    if (password.length < 6) {
+      return res.status(400).json({ success: false, message: 'Password must be at least 6 characters' });
+    }
+    
+    const normalizedEmail = email.toLowerCase().trim();
+    
+    // Find agent with valid token
+    let agent = inMemoryAgents.find(a => a.email === normalizedEmail && a.resetToken === token && a.resetTokenExpiry && new Date(a.resetTokenExpiry) > new Date());
+    
+    if (!agent) {
+      // Try MongoDB
+      try {
+        if (typeof global.getMongoDbPromise === 'function') {
+          var db = await Promise.race([
+            global.getMongoDbPromise(),
+            new Promise(function(r) { setTimeout(function() { r('__TIMEOUT__'); }, 5000); })
+          ]);
+          if (db && db !== '__TIMEOUT__') {
+            var mongoAgent = await db.collection('agents').findOne({
+              email: normalizedEmail,
+              resetToken: token,
+              resetTokenExpiry: { $gt: new Date() }
+            });
+            if (mongoAgent) agent = mongoAgent;
+          }
+        }
+      } catch(e) {}
+    }
+    
+    if (!agent) {
+      return res.status(400).json({ success: false, message: 'Invalid or expired reset link. Please request a new one.' });
+    }
+    
+    // Hash new password
+    const salt = await bcrypt.genSalt(10);
+    const hashedPassword = await bcrypt.hash(password, salt);
+    
+    // Update in-memory
+    var memAgent = inMemoryAgents.find(a => a.email === normalizedEmail);
+    if (memAgent) {
+      memAgent.password = hashedPassword;
+      delete memAgent.resetToken;
+      delete memAgent.resetTokenExpiry;
+    }
+    
+    // Update MongoDB
+    if (typeof global.getMongoDbPromise === 'function') {
+      global.getMongoDbPromise().then(function(conn) {
+        if (conn) {
+          conn.collection('agents').updateOne(
+            { email: normalizedEmail },
+            {
+              $set: { password: hashedPassword },
+              $unset: { resetToken: '', resetTokenExpiry: '' }
+            }
+          ).catch(function(e) {});
+        }
+      }).catch(function(e) {});
+    }
+    
+    // Also update via Mongoose if available
+    try {
+      if (Agent) {
+        Agent.updateOne(
+          { email: normalizedEmail },
+          {
+            $set: { password: hashedPassword },
+            $unset: { resetToken: '', resetTokenExpiry: '' }
+          }
+        ).catch(function(e) {});
+      }
+    } catch(e) {}
+    
+    res.json({ success: true, message: 'Password has been reset successfully. You can now log in with your new password.' });
+  } catch (error) {
+    console.error('Reset password error:', error);
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
+});
+
 // POST /api/auth/login
 router.post('/login', async (req, res) => {
   try {

@@ -8,7 +8,11 @@ const agentSchema = new mongoose.Schema({
   slug: { type: String, required: true, unique: true, lowercase: true, trim: true },
   phone: { type: String, trim: true },
   website: { type: String, trim: true },
-  plan: { type: String, enum: ['starter', 'professional'], default: 'starter' },
+  plan: { type: String, enum: ['starter', 'pro', 'pro-annual', 'pro-plus', 'pro-plus-annual'], default: 'starter' },
+  
+  // Password reset
+  resetToken: { type: String },
+  resetTokenExpiry: { type: Date },
   
   // White-label branding
   logo: { type: String, default: '' },
