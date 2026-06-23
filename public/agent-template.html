@@ -469,8 +469,7 @@
                         var controller = new AbortController();
                         var timeoutId = setTimeout(function() { controller.abort(); }, 25000);
                         
-                        var apiBase = '' 
-                          : '';
+                        var apiBase = '';  // same origin
                         var res = await fetch(apiBase + '/api/agents/' + slug, { signal: controller.signal });
                         clearTimeout(timeoutId);
                         
