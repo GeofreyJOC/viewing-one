@@ -50,12 +50,14 @@ async function resolveAgentEmail(propertyId) {
 }
 
 async function notifyAgentBooking(agentEmail, propertyTitle, visitorName, visitorWhatsApp, visitorEmail, date, time, propertyId) {
-  if (!transporter) return;
+  console.log('notifyAgentBooking called:', { transporter: !!transporter, agentEmail: agentEmail || '(null)', title: propertyTitle, propertyId: propertyId || '(none)' });
+  if (!transporter) { console.log('  -> transporter is null'); return; }
   // If no agentEmail provided, try to resolve from propertyId
   if (!agentEmail && propertyId) {
-    try { agentEmail = await resolveAgentEmail(propertyId); } catch(e) {}
+    try { agentEmail = await resolveAgentEmail(propertyId); } catch(e) { console.log('  -> resolveAgentEmail error:', e.message); }
   }
-  if (!agentEmail) { console.log('Booking notification skipped - no agent email'); return; }
+  console.log('  -> final agentEmail:', agentEmail || '(null)');
+  if (!agentEmail) { console.log('  -> no agent email, skipping'); return; }
   try {
     var isRequest = (date === 'To be arranged');
     await transporter.sendMail({
