@@ -68,10 +68,16 @@ router.post('/', async (req, res) => {
       var jwt = require('jsonwebtoken');
       var decoded = jwt.verify(token, process.env.JWT_SECRET || 'viewingone-dev-secret-key-2026');
       prop.agentId = decoded.agentId || decoded.id || '';
+      // Also store agent email for booking notifications
+      if (prop.agentId && global.__inMemoryAgents) {
+        var agent = global.__inMemoryAgents.find(function(a) { return a._id === prop.agentId || a.id === prop.agentId; });
+        if (agent && agent.email) prop.agentEmail = agent.email;
+      }
       if (!prop.agentId) {
         // Fallback: search in-memory agents
         if (global.__inMemoryAgents && global.__inMemoryAgents.length > 0) {
           prop.agentId = global.__inMemoryAgents[0]._id || global.__inMemoryAgents[0].id || '';
+          if (global.__inMemoryAgents[0].email) prop.agentEmail = global.__inMemoryAgents[0].email;
         }
       }
     } catch(e) {}

@@ -49,8 +49,13 @@ async function resolveAgentEmail(propertyId) {
   return null;
 }
 
-async function notifyAgentBooking(agentEmail, propertyTitle, visitorName, visitorWhatsApp, visitorEmail, date, time) {
-  if (!transporter || !agentEmail) return;
+async function notifyAgentBooking(agentEmail, propertyTitle, visitorName, visitorWhatsApp, visitorEmail, date, time, propertyId) {
+  if (!transporter) return;
+  // If no agentEmail provided, try to resolve from propertyId
+  if (!agentEmail && propertyId) {
+    try { agentEmail = await resolveAgentEmail(propertyId); } catch(e) {}
+  }
+  if (!agentEmail) { console.log('Booking notification skipped - no agent email'); return; }
   try {
     var isRequest = (date === 'To be arranged');
     await transporter.sendMail({
@@ -116,7 +121,7 @@ router.post('/', async (req, res) => {
             } catch(e) {}
           }
 
-          notifyAgentBooking(agentEmail, property.title, visitorName, visitorWhatsApp, visitorEmail, 'To be arranged', 'To be arranged');
+          notifyAgentBooking(agentEmail, property.title, visitorName, visitorWhatsApp, visitorEmail, 'To be arranged', 'To be arranged', propertyId);
 
           return res.status(201).json({
             success: true, message: 'Viewing request sent! The agent will contact you with available times.',
@@ -149,7 +154,7 @@ router.post('/', async (req, res) => {
         }
 
         // Send email notification async (don't block response)
-        notifyAgentBooking(agentEmail, property.title, visitorName, visitorWhatsApp, visitorEmail, slot.date, slot.time);
+        notifyAgentBooking(agentEmail, property.title, visitorName, visitorWhatsApp, visitorEmail, slot.date, slot.time, propertyId);
 
         return res.status(201).json({
           success: true, message: 'Viewing booked successfully!',
@@ -234,7 +239,7 @@ router.post('/', async (req, res) => {
       } catch(e) { console.error('MongoDB request sync error:', e.message); }
 
       // Send notification email async
-      notifyAgentBooking(agentEmail, prop.title, visitorName, visitorWhatsApp, visitorEmail, 'To be arranged', 'To be arranged');
+      notifyAgentBooking(agentEmail, prop.title, visitorName, visitorWhatsApp, visitorEmail, 'To be arranged', 'To be arranged', prop._id || prop.id || propertyId);
 
       return res.status(201).json({
         success: true, message: 'Viewing request sent! The agent will contact you with available times.',
@@ -299,7 +304,7 @@ router.post('/', async (req, res) => {
     } catch(e2) { console.error('MongoDB booking sync error:', e2.message); }
 
     // Send notification email async
-    notifyAgentBooking(agentEmail, prop.title, visitorName, visitorWhatsApp, visitorEmail, slot.date, slot.time);
+    notifyAgentBooking(agentEmail, prop.title, visitorName, visitorWhatsApp, visitorEmail, slot.date, slot.time, prop._id || prop.id || propertyId);
 
     res.status(201).json({
       success: true, message: 'Viewing booked successfully!',
