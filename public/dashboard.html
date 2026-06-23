@@ -155,7 +155,7 @@
     <div class="nav-item" onclick="switchTab('slots')" id="tour-slots">⏰ Time Slots</div>
     <div class="nav-item" onclick="switchTab('add')" id="tour-add">➕ Add Listing</div>
     <div class="nav-item" onclick="switchTab('profile')" id="tour-profile">👤 My Profile</div>
-    <div class="nav-item" onclick="switchTab('feedback')">💬 Feedback</div>
+    <div class="nav-item" onclick="switchTab('feedback')" id="tour-feedback">💬 Feedback</div>
     <div class="user-info" id="userInfo">
         <strong id="userName">Agent</strong>
         <span id="userEmail"></span>
@@ -489,6 +489,21 @@
     width:7px; height:7px; border-radius:50%; background:#e0e7ff; transition:all 0.3s;
   }
   .tour-tooltip .tour-dot.active { background:#4f46e5; width:22px; border-radius:4px; }
+  /* Arrow indicators */
+  .tour-arrow {
+    position:fixed; z-index:1001; pointer-events:none;
+    width:0; height:0;
+  }
+  .tour-arrow.right {
+    border-top:10px solid transparent;
+    border-bottom:10px solid transparent;
+    border-right:12px solid white;
+  }
+  .tour-arrow.bottom {
+    border-left:10px solid transparent;
+    border-right:10px solid transparent;
+    border-bottom:12px solid white;
+  }
 </style>
 
 <div id="tourOverlay"></div>
@@ -1458,39 +1473,45 @@ function escapeHtml(t) {
 // ---- Guided Tour ----
 var tourSteps = [
   {
+    target: '#tour-profile',
+    title: '👤 Set Up Your Profile',
+    text: 'Upload a photo, pick your brand colours, set a tagline, and add your contact info. This is what clients will see on your agent page.',
+    placement: 'right'
+  },
+  {
     target: '#tour-add',
-    title: '➕ Add Your First Listing',
-    text: 'Paste a Private Property URL here and we\'ll auto-import the photos, price, and description. You can also forward listing emails to <strong>listings@viewing.one</strong>.',
-    placement: 'right'
-  },
-  {
-    target: '#agentPageLink',
-    title: '🔗 Your Public Agent Page',
-    text: 'This is your unique URL — share it with clients so they can browse your listings and book viewings.',
-    placement: 'bottom'
-  },
-  {
-    target: '#tour-listings',
-    title: '📋 Your Listings',
-    text: 'All your imported properties appear here. Click a listing to manage viewing slots, pricing, and photos.',
-    placement: 'right'
-  },
-  {
-    target: '#tour-bookings',
-    title: '📅 Bookings',
-    text: 'When someone books a viewing, their request shows up here with their name, contact info, and preferred time slot.',
+    title: '📩 Add Listings',
+    text: 'Paste a Private Property or Property24 URL here and we\'ll auto-import the photos, price, and description. You can also email listing URLs to <strong>listings@viewing.one</strong>.',
     placement: 'right'
   },
   {
     target: '#tour-slots',
-    title: '⏰ Time Slots',
-    text: 'Create available time slots for each property so clients can pick a time that works for them.',
+    title: '⏰ Set Time Slots',
+    text: 'Create available viewing time slots for each property so clients can pick a time that works for them.',
     placement: 'right'
   },
   {
-    target: '#tour-profile',
-    title: '👤 Your Profile',
-    text: 'Customize your brand — upload a profile photo, pick your colours, set a tagline, and change your password.',
+    target: '#agentPageLink',
+    title: '🔗 Share Your Agent Link',
+    text: 'This is your public agent page URL — share it with clients so they can browse your listings and book viewings.',
+    placement: 'bottom'
+  },
+  {
+    target: '#tour-bookings',
+    title: '📅 View Bookings',
+    text: 'When someone books a viewing, the request shows up here with their name, contact info, and preferred time.',
+    placement: 'right'
+  },
+  {
+    target: '#tour-feedback',
+    title: '💬 Send Feedback',
+    text: 'Found a bug or have a suggestion? Let us know here — I read every message.',
+    placement: 'right'
+  },
+  {
+    target: '#userInfo',
+    title: '🎯 Take the Tour Again',
+    text: 'You can restart this tour anytime by clicking the <strong>Tour</strong> button right here above the log out link.',
     placement: 'right'
   }
 ];
@@ -1528,7 +1549,7 @@ function showTourStep(index) {
   // Get element position
   var rect = el.getBoundingClientRect();
   
-  // Build highlight + tooltip HTML
+  // Build progress dots
   var dotsHtml = '';
   for (var i = 0; i < tourSteps.length; i++) {
     dotsHtml += '<div class="tour-dot' + (i === index ? ' active' : '') + '"></div>';
@@ -1537,25 +1558,34 @@ function showTourStep(index) {
   var isLast = index === tourSteps.length - 1;
   var isFirst = index === 0;
   
-  // Position tooltip based on placement
-  var tooltipX, tooltipY;
-  var gap = 14;
+  // Position tooltip and arrow
+  var tooltipX, tooltipY, arrowX, arrowY, arrowDir;
+  var gap = 16;
   
   if (step.placement === 'right') {
-    tooltipX = rect.right + gap;
-    tooltipY = rect.top + rect.height / 2 - 50;
-    if (tooltipY < 20) tooltipY = 20;
-    if (tooltipY + 160 > window.innerHeight) tooltipY = window.innerHeight - 180;
+    tooltipX = rect.right + gap + 12;
+    tooltipY = rect.top + rect.height / 2 - 55;
+    arrowX = rect.right + gap;
+    arrowY = rect.top + rect.height / 2 - 10;
+    arrowDir = 'right';
+    if (tooltipY < 20) { tooltipY = 20; arrowY = rect.top + rect.height / 2 - 10; }
+    if (tooltipY + 180 > window.innerHeight) { tooltipY = window.innerHeight - 195; arrowY = Math.min(arrowY, tooltipY + 50); }
   } else if (step.placement === 'bottom') {
     tooltipX = rect.left + rect.width / 2 - 170;
-    tooltipY = rect.bottom + gap;
-    if (tooltipY + 180 > window.innerHeight) tooltipY = rect.top - 200;
+    tooltipY = rect.bottom + gap + 12;
+    arrowX = rect.left + rect.width / 2 - 10;
+    arrowY = rect.bottom + gap;
+    arrowDir = 'bottom';
+    if (tooltipY + 180 > window.innerHeight) { tooltipY = rect.top - 195; arrowY = rect.top - 12 - gap; arrowDir = null; }
     if (tooltipX < 20) tooltipX = 20;
   }
+  
+  var arrowHtml = arrowDir ? '<div class="tour-arrow ' + arrowDir + '" style="top:' + arrowY + 'px;left:' + arrowX + 'px;"></div>' : '';
   
   overlay.innerHTML = (
     '<div class="tour-backdrop" onclick="endTour()"></div>' +
     '<div class="tour-highlight" style="top:' + rect.top + 'px;left:' + rect.left + 'px;width:' + rect.width + 'px;height:' + rect.height + 'px;"></div>' +
+    arrowHtml +
     '<div class="tour-tooltip" style="top:' + tooltipY + 'px;left:' + Math.max(tooltipX, 10) + 'px;">' +
       '<div class="tour-progress">' + dotsHtml + '</div>' +
       '<div class="tour-step-num">Step ' + (index + 1) + ' of ' + tourSteps.length + '</div>' +
