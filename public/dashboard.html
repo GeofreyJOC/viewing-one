@@ -150,16 +150,19 @@
 <!-- Sidebar -->
 <div class="sidebar" id="sidebar">
     <div class="logo"><span>Viewing</span>.One</div>
-    <div class="nav-item active" onclick="switchTab('listings')">📋 My Listings</div>
-    <div class="nav-item" onclick="switchTab('bookings')">📅 Bookings <span id="bookingBadgeSide" class="badge" style="display:none;">0</span></div>
-    <div class="nav-item" onclick="switchTab('slots')">⏰ Time Slots</div>
-    <div class="nav-item" onclick="switchTab('add')">➕ Add Listing</div>
-    <div class="nav-item" onclick="switchTab('profile')">👤 My Profile</div>
+    <div class="nav-item active" onclick="switchTab('listings')" id="tour-listings">📋 My Listings</div>
+    <div class="nav-item" onclick="switchTab('bookings')" id="tour-bookings">📅 Bookings <span id="bookingBadgeSide" class="badge" style="display:none;">0</span></div>
+    <div class="nav-item" onclick="switchTab('slots')" id="tour-slots">⏰ Time Slots</div>
+    <div class="nav-item" onclick="switchTab('add')" id="tour-add">➕ Add Listing</div>
+    <div class="nav-item" onclick="switchTab('profile')" id="tour-profile">👤 My Profile</div>
     <div class="nav-item" onclick="switchTab('feedback')">💬 Feedback</div>
     <div class="user-info" id="userInfo">
         <strong id="userName">Agent</strong>
         <span id="userEmail"></span>
-        <div style="margin-top:8px;"><a href="/logout" style="color:#dc2626;font-size:12px;text-decoration:none;" onclick="doLogout();return false;">Log out</a></div>
+        <div style="margin-top:8px;display:flex;gap:6px;flex-wrap:wrap;">
+            <button onclick="startTour()" style="font-size:11px;background:transparent;color:#818cf8;border:1px solid #818cf8;padding:3px 10px;border-radius:6px;cursor:pointer;">🎯 Tour</button>
+            <a href="/logout" style="color:#dc2626;font-size:12px;text-decoration:none;" onclick="doLogout();return false;">Log out</a>
+        </div>
     </div>
 </div>
 
@@ -433,81 +436,62 @@
 <!-- Toast -->
 <div class="toast" id="toast"></div>
 
-<!-- Onboarding Card -->
-<div id="onboardingCard" style="display:none;">
-    <style>
-        #onboardingOverlay {
-            position:fixed; top:0; left:0; right:0; bottom:0;
-            background:rgba(0,0,0,0.5); z-index:999; display:flex;
-            align-items:center; justify-content:center; padding:24px;
-        }
-        #onboardingCard {
-            background:white; border-radius:16px; max-width:520px; width:100%;
-            padding:32px; box-shadow:0 8px 40px rgba(0,0,0,0.15); position:relative;
-        }
-        #onboardingCard h2 { font-size:22px; margin-bottom:4px; }
-        #onboardingCard .sub { color:#888; font-size:14px; margin-bottom:20px; }
-        #onboardingCard .step {
-            display:flex; gap:14px; margin-bottom:16px; padding:12px; border-radius:10px;
-        }
-        #onboardingCard .step:hover { background:#f4f6fa; }
-        #onboardingCard .num {
-            width:32px; height:32px; background:#4f46e5; color:white; border-radius:50%;
-            display:flex; align-items:center; justify-content:center; font-weight:700; font-size:14px; flex-shrink:0;
-        }
-        #onboardingCard .step-text { flex:1; }
-        #onboardingCard .step-text strong { display:block; font-size:14px; }
-        #onboardingCard .step-text p { font-size:13px; color:#888; margin-top:2px; }
-        #onboardingCard .close-btn {
-            width:100%; padding:12px; background:#4f46e5; color:white; border:none;
-            border-radius:8px; font-size:15px; font-weight:600; cursor:pointer; margin-top:8px;
-        }
-        #onboardingCard .close-btn:hover { background:#4338ca; }
-        #onboardingCard .skip {
-            display:block; text-align:center; margin-top:10px; font-size:13px;
-            color:#888; cursor:pointer; background:none; border:none; width:100%;
-        }
-        #onboardingCard .skip:hover { color:#555; }
-        #onboardingCard .link { color:#4f46e5; text-decoration:none; }
-        #onboardingCard .link:hover { text-decoration:underline; }
-    </style>
-    <div id="onboardingOverlay">
-        <div>
-            <h2>🎉 Welcome to Viewing.One!</h2>
-            <p class="sub">Your account is ready. Here's how to get started:</p>
-            <div class="step">
-                <div class="num">1</div>
-                <div class="step-text">
-                    <strong>Add your listings</strong>
-                    <p>Paste a Property24 or Private Property URL in the <strong>Add Listing</strong> tab, or forward listing emails to <strong>listings@viewing.one</strong></p>
-                </div>
-            </div>
-            <div class="step">
-                <div class="num">2</div>
-                <div class="step-text">
-                    <strong>Set your availability</strong>
-                    <p>Go to the <strong>Time Slots</strong> tab and create viewing slots for each property</p>
-                </div>
-            </div>
-            <div class="step">
-                <div class="num">3</div>
-                <div class="step-text">
-                    <strong>Share your agent page</strong>
-                    <p>Your page is at <a href="" id="onboardingPageLink" class="link" target="_blank"></a> — send this to clients so they can book viewings</p>
-                </div>
-            </div>
-            <div class="step">
-                <div class="num">4</div>
-                <div class="step-text">
-                    <strong>Get notified</strong>
-                    <p>We'll email you whenever someone books a viewing. Check the <strong>Bookings</strong> tab to manage them</p>
-                </div>
-            </div>
-            <button class="close-btn" onclick="dismissOnboarding()">Got it, let's go! 🚀</button>
-            <button class="skip" onclick="dismissOnboarding()">Dismiss</button>
-        </div>
-    </div>
-</div>
+<!-- Tour System -->
+<style>
+<style>
+  #tourOverlay {
+    position:fixed; top:0; left:0; right:0; bottom:0; z-index:999;
+    pointer-events:none;
+  }
+  #tourOverlay.active { pointer-events:auto; }
+  #tourOverlay .tour-backdrop {
+    position:fixed; top:0; left:0; right:0; bottom:0;
+    background:rgba(0,0,0,0.3);
+  }
+  #tourOverlay .tour-highlight {
+    position:fixed; z-index:1000; pointer-events:auto;
+    box-shadow:0 0 0 4px #4f46e5, 0 0 20px rgba(79,70,229,0.3);
+    border-radius:8px; transition:all 0.35s cubic-bezier(.22,1,.36,1);
+  }
+  #tourOverlay .tour-tooltip {
+    position:fixed; z-index:1001; pointer-events:auto;
+    background:white; border-radius:14px;
+    padding:22px 24px; max-width:360px; width:max-content;
+    box-shadow:0 6px 32px rgba(0,0,0,0.18);
+    animation:tourPop 0.3s cubic-bezier(.22,1,.36,1);
+  }
+  @keyframes tourPop {
+    0% { opacity:0; transform:translateY(12px) scale(0.95); }
+    100% { opacity:1; transform:translateY(0) scale(1); }
+  }
+  .tour-tooltip .tour-step-num {
+    font-size:11px; font-weight:700; color:#818cf8; text-transform:uppercase;
+    letter-spacing:1px; margin-bottom:4px;
+  }
+  .tour-tooltip h3 { font-size:17px; font-weight:600; margin-bottom:6px; }
+  .tour-tooltip p { font-size:13.5px; color:#555; line-height:1.5; margin-bottom:14px; }
+  .tour-tooltip .tour-btn-row { display:flex; gap:6px; align-items:center; flex-wrap:wrap; }
+  .tour-tooltip .tour-btn-row button {
+    padding:7px 16px; font-size:13px; border-radius:7px; cursor:pointer; border:none; font-weight:600;
+  }
+  .tour-tooltip .tour-btn-row .btn-prev { background:#f3f4f6; color:#666; }
+  .tour-tooltip .tour-btn-row .btn-prev:hover { background:#e5e7eb; }
+  .tour-tooltip .tour-btn-row .btn-next { background:#4f46e5; color:white; }
+  .tour-tooltip .tour-btn-row .btn-next:hover { background:#4338ca; }
+  .tour-tooltip .tour-btn-row .btn-done { background:#10b981; color:white; }
+  .tour-tooltip .tour-btn-row .btn-done:hover { background:#059669; }
+  .tour-tooltip .tour-btn-row .btn-skip { background:transparent; color:#999; font-size:12px; padding:7px 10px; }
+  .tour-tooltip .tour-btn-row .btn-skip:hover { color:#555; }
+  .tour-tooltip .tour-progress {
+    display:flex; gap:4px; margin-bottom:12px;
+  }
+  .tour-tooltip .tour-dot {
+    width:7px; height:7px; border-radius:50%; background:#e0e7ff; transition:all 0.3s;
+  }
+  .tour-tooltip .tour-dot.active { background:#4f46e5; width:22px; border-radius:4px; }
+</style>
+
+<div id="tourOverlay"></div>
 
 <script>
 var API = '';
@@ -525,7 +509,7 @@ var API = '';
     window.history.replaceState({}, '', url);
   }
   if (urlParams.get('registered') === '1') {
-    localStorage.setItem('showOnboarding', 'true');
+    localStorage.setItem('showTour', 'true');
   }
 })();
 
@@ -1471,24 +1455,134 @@ function escapeHtml(t) {
     return d.innerHTML;
 }
 
-function dismissOnboarding() {
-    document.getElementById('onboardingCard').style.display = 'none';
-    localStorage.removeItem('showOnboarding');
+// ---- Guided Tour ----
+var tourSteps = [
+  {
+    target: '#tour-add',
+    title: '➕ Add Your First Listing',
+    text: 'Paste a Private Property URL here and we\'ll auto-import the photos, price, and description. You can also forward listing emails to <strong>listings@viewing.one</strong>.',
+    placement: 'right'
+  },
+  {
+    target: '#agentPageLink',
+    title: '🔗 Your Public Agent Page',
+    text: 'This is your unique URL — share it with clients so they can browse your listings and book viewings.',
+    placement: 'bottom'
+  },
+  {
+    target: '#tour-listings',
+    title: '📋 Your Listings',
+    text: 'All your imported properties appear here. Click a listing to manage viewing slots, pricing, and photos.',
+    placement: 'right'
+  },
+  {
+    target: '#tour-bookings',
+    title: '📅 Bookings',
+    text: 'When someone books a viewing, their request shows up here with their name, contact info, and preferred time slot.',
+    placement: 'right'
+  },
+  {
+    target: '#tour-slots',
+    title: '⏰ Time Slots',
+    text: 'Create available time slots for each property so clients can pick a time that works for them.',
+    placement: 'right'
+  },
+  {
+    target: '#tour-profile',
+    title: '👤 Your Profile',
+    text: 'Customize your brand — upload a profile photo, pick your colours, set a tagline, and change your password.',
+    placement: 'right'
+  }
+];
+
+var tourStep = 0;
+var tourActive = false;
+
+function startTour() {
+  tourStep = 0;
+  tourActive = true;
+  showTourStep(0);
 }
+
+function endTour() {
+  tourActive = false;
+  var overlay = document.getElementById('tourOverlay');
+  overlay.innerHTML = '';
+  overlay.classList.remove('active');
+}
+
+function showTourStep(index) {
+  if (index < 0 || index >= tourSteps.length) {
+    endTour();
+    return;
+  }
+  tourStep = index;
+  var step = tourSteps[index];
+  var overlay = document.getElementById('tourOverlay');
+  overlay.classList.add('active');
+  
+  // Find target element
+  var el = document.querySelector(step.target);
+  if (!el) return endTour();
+  
+  // Get element position
+  var rect = el.getBoundingClientRect();
+  
+  // Build highlight + tooltip HTML
+  var dotsHtml = '';
+  for (var i = 0; i < tourSteps.length; i++) {
+    dotsHtml += '<div class="tour-dot' + (i === index ? ' active' : '') + '"></div>';
+  }
+  
+  var isLast = index === tourSteps.length - 1;
+  var isFirst = index === 0;
+  
+  // Position tooltip based on placement
+  var tooltipX, tooltipY;
+  var gap = 14;
+  
+  if (step.placement === 'right') {
+    tooltipX = rect.right + gap;
+    tooltipY = rect.top + rect.height / 2 - 50;
+    if (tooltipY < 20) tooltipY = 20;
+    if (tooltipY + 160 > window.innerHeight) tooltipY = window.innerHeight - 180;
+  } else if (step.placement === 'bottom') {
+    tooltipX = rect.left + rect.width / 2 - 170;
+    tooltipY = rect.bottom + gap;
+    if (tooltipY + 180 > window.innerHeight) tooltipY = rect.top - 200;
+    if (tooltipX < 20) tooltipX = 20;
+  }
+  
+  overlay.innerHTML = (
+    '<div class="tour-backdrop" onclick="endTour()"></div>' +
+    '<div class="tour-highlight" style="top:' + rect.top + 'px;left:' + rect.left + 'px;width:' + rect.width + 'px;height:' + rect.height + 'px;"></div>' +
+    '<div class="tour-tooltip" style="top:' + tooltipY + 'px;left:' + Math.max(tooltipX, 10) + 'px;">' +
+      '<div class="tour-progress">' + dotsHtml + '</div>' +
+      '<div class="tour-step-num">Step ' + (index + 1) + ' of ' + tourSteps.length + '</div>' +
+      '<h3>' + step.title + '</h3>' +
+      '<p>' + step.text + '</p>' +
+      '<div class="tour-btn-row">' +
+        (isFirst ? '' : '<button class="btn-prev" onclick="showTourStep(' + (index - 1) + ')">← Back</button>') +
+        '<button class="btn-skip" onclick="endTour()">Skip</button>' +
+        (isLast ? '<button class="btn-done" onclick="endTour()">Done ✓</button>' : '<button class="btn-next" onclick="showTourStep(' + (index + 1) + ')">Next →</button>') +
+      '</div>' +
+    '</div>'
+  );
+}
+
+// Global error handler to dismiss tour if something goes wrong
+window.addEventListener('error', function() {
+  if (tourActive) endTour();
+});
 
 // Init
 loadData();
 loadBookings();
 
-// Show onboarding if just registered
-if (localStorage.getItem('showOnboarding') === 'true') {
-    var slug = (agent && (agent.slug || agent.id)) || '';
-    var link = document.getElementById('onboardingPageLink');
-    if (link) {
-        link.textContent = 'viewing.one/' + slug;
-        link.href = 'https://viewing.one/' + slug;
-    }
-    document.getElementById('onboardingCard').style.display = 'block';
+// Show guided tour on first login
+if (localStorage.getItem('showTour') === 'true') {
+    localStorage.removeItem('showTour');
+    setTimeout(startTour, 800);
 }
 
 // Refresh time slots when tab is shown
