@@ -115,7 +115,7 @@ router.post('/register', async (req, res) => {
       if (smtpTransporter) {
         var agentPageUrl = 'https://viewing.one/' + slug;
         console.log('Sending welcome email to', normalizedEmail);
-        await smtpTransporter.sendMail({
+        smtpTransporter.sendMail({
           from: '"Viewing.One" <listings@viewing.one>',
           to: normalizedEmail,
           subject: 'Welcome to Viewing.One, ' + name + '!',
@@ -141,7 +141,7 @@ router.post('/register', async (req, res) => {
             '<p style="color:#888;font-size:13px;">Need help? Contact us at <a href="mailto:admin@viewing.one" style="color:#4f46e5;">admin@viewing.one</a></p>' +
             '</div>'
         });
-        console.log('Welcome email sent to ' + normalizedEmail);
+        console.log('Welcome email (fire-and-forget) to ' + normalizedEmail);
       }
     } catch(e) {
       console.error('Welcome email send failed:', e.message);
