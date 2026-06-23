@@ -497,6 +497,13 @@ app.get('/:slug', async (req, res, next) => {
       return true;
     });
     
+    // Strip reference numbers from titles (defense-in-depth against stale cache)
+    memProps.forEach(function(p) {
+      if (p.title) {
+        p.title = p.title.replace(/\s*\|\s*T\d+\s*$/i, '');
+      }
+    });
+
     // Build the same format as the /api/agents/:slug response (agent-template.js expects this)
     agentData = {
       success: true,
@@ -589,6 +596,19 @@ app.get('/api/db-status', async (req, res) => {
     info.mongoose.readyStateLabel = ['disconnected','connected','connecting','disconnecting'][mongoose.connection.readyState] || 'unknown';
   } catch(e) {}
   res.json(info);
+});
+
+// Debug endpoint to check in-memory cache
+app.get('/api/debug-inmem', async (req, res) => {
+  var data = {
+    agentsCount: (global.__inMemoryAgents || []).length,
+    propsCount: (global.__inMemoryProperties || []).length,
+    props: (global.__inMemoryProperties || []).slice(0, 20).map(function(p) {
+      return { id: (p._id || '').toString().slice(-6), title: p.title, agentId: typeof p.agentId === 'object' ? (p.agentId.toString ? p.agentId.toString().slice(-6) : '?') : String(p.agentId || '').slice(-6) };
+    }),
+    dbStatus: dbStatus
+  };
+  res.json(data);
 });
 
 module.exports = app;

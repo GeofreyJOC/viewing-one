@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Deploy Viewing.One - Step by Step</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f7fa;
+            color: #333;
+        }
+        .step {
+            background: white;
+            border-radius: 10px;
+            padding: 25px;
+            margin: 20px 0;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.05);
+            border-left: 5px solid #667eea;
+        }
+        .step-number {
+            display: inline-block;
+            background: #667eea;
+            color: white;
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            text-align: center;
+            line-height: 30px;
+            font-weight: bold;
+            margin-right: 10px;
+        }
+        .screenshot {
+            max-width: 100%;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            margin: 15px 0;
+        }
+        .btn {
+            display: inline-block;
+            padding: 12px 25px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-radius: 8px;
+            text-decoration: none;
+            font-weight: bold;
+            margin: 10px 5px;
+        }
+        .btn:hover {
+            opacity: 0.9;
+        }
+        .note {
+            background: #fff3cd;
+            border-left: 4px solid #ffc107;
+            padding: 15px;
+            margin: 15px 0;
+            border-radius: 5px;
+        }
+        .success {
+            background: #d4edda;
+            border-left: 4px solid #28a745;
+            padding: 15px;
+            margin: 15px 0;
+            border-radius: 5px;
+        }
+        code {
+            background: #f8f9fa;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-family: monospace;
+        }
+    </style>
+</head>
+<body>
+    <h1>🚀 Deploy Viewing.One to Vercel</h1>
+    <p>Follow these steps to make viewing.one live:</p>
+    
+    <div class="step">
+        <h2><span class="step-number">1</span> Log into Vercel</h2>
+        <a href="https://vercel.com/login" class="btn" target="_blank">Go to Vercel Login</a>
+        <p>Login with: <code>geofreyjetson@proton.me</code></p>
+        <div class="note">
+            <strong>Note:</strong> If you don't have the password, you can reset it or create a new account.
+        </div>
+    </div>
+    
+    <div class="step">
+        <h2><span class="step-number">2</span> Create New Project</h2>
+        <a href="https://vercel.com/new" class="btn" target="_blank">Create New Project</a>
+        <p>After logging in, click "New Project"</p>
+        <img src="https://vercel.com/_next/static/media/create-new-project.34a95d9e.png" alt="New Project Button" class="screenshot" style="max-width: 300px;">
+    </div>
+    
+    <div class="step">
+        <h2><span class="step-number">3</span> Import Project</h2>
+        <p>Click "Import Git Repository" then "Drag & Drop"</p>
+        <div class="note">
+            <strong>Drag these files:</strong> Select ALL files from the <code>viewing-one</code> folder and drag them onto Vercel.
+        </div>
+        <img src="https://vercel.com/_next/static/media/drag-and-drop.8c19b1a7.png" alt="Drag and Drop" class="screenshot" style="max-width: 400px;">
+    </div>
+    
+    <div class="step">
+        <h2><span class="step-number">4</span> Configure Project</h2>
+        <p>Vercel will auto-detect settings. Just:</p>
+        <ol>
+            <li>Project Name: <code>viewing-one</code></li>
+            <li>Framework: <code>Other</code></li>
+            <li>Root Directory: <code>.</code> (default)</li>
+            <li>Build Command: (leave empty)</li>
+            <li>Output Directory: <code>public</code></li>
+        </ol>
+        <a href="https://vercel.com/docs/concepts/projects/overview#project-configuration" class="btn" target="_blank">Configuration Help</a>
+    </div>
+    
+    <div class="step">
+        <h2><span class="step-number">5</span> Deploy!</h2>
+        <p>Click the big blue "Deploy" button</p>
+        <div class="success">
+            <strong>✅ Deployment takes 1-2 minutes</strong><br>
+            Vercel will automatically:
+            <ul>
+                <li>Build your project</li>
+                <li>Deploy globally</li>
+                <li>Generate SSL certificate</li>
+            </ul>
+        </div>
+    </div>
+    
+    <div class="step">
+        <h2><span class="step-number">6</span> Add Custom Domain</h2>
+        <p>After deployment:</p>
+        <ol>
+            <li>Go to Project → Settings → Domains</li>
+            <li>Add: <code>viewing.one</code></li>
+            <li>Vercel will verify DNS (already correct!)</li>
+            <li>SSL will auto-configure</li>
+        </ol>
+        <a href="https://vercel.com/docs/concepts/projects/domains/add-a-domain" class="btn" target="_blank">Domain Setup Guide</a>
+    </div>
+    
+    <div class="step">
+        <h2><span class="step-number">7</span> Test Your Site</h2>
+        <p>Once deployed, test:</p>
+        <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+            <a href="https://viewing.one" class="btn" target="_blank">🌐 viewing.one</a>
+            <a href="https://viewing.one/api/health" class="btn" target="_blank">🔧 API Health</a>
+            <a href="https://viewing.one/register.html" class="btn" target="_blank">📝 Registration</a>
+            <a href="https://viewing.one/admin.html" class="btn" target="_blank">⚙️ Admin</a>
+        </div>
+    </div>
+    
+    <div class="step">
+        <h2>🎯 Need Help?</h2>
+        <p>If you get stuck:</p>
+        <ul>
+            <li><strong>Screenshot:</strong> Take a screenshot of what you see</li>
+            <li><strong>Error message:</strong> Copy any error messages</li>
+            <li><strong>Contact:</strong> Send to Geofrey for immediate help</li>
+        </ul>
+        <div class="note">
+            <strong>Vercel Support:</strong> Excellent live chat support available during deployment.
+        </div>
+    </div>
+    
+    <div class="success" style="text-align: center; margin-top: 30px;">
+        <h2>✅ DNS is Already Perfect!</h2>
+        <p><code>viewing.one</code> is already pointing to Vercel (76.76.21.21)</p>
+        <p>Just deploy the app and it will be live instantly!</p>
+    </div>
+    
+    <script>
+        // Auto-open first link on page load
+        window.addEventListener('load', function() {
+            // You can add any interactive help here
+        });
+    </script>
+</body>
+</html>

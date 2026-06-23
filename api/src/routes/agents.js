@@ -142,6 +142,13 @@ router.get('/:slug', async (req, res) => {
       return true;
     });
 
+    // Strip reference numbers from titles (defense-in-depth against stale cache)
+    properties.forEach(function(p) {
+      if (p.title) {
+        p.title = p.title.replace(/\s*\|\s*T\d+\s*$/i, '');
+      }
+    });
+
     res.json({
       success: true,
       agent: {

@@ -45,7 +45,7 @@ router.post('/', async (req, res) => {
 
     var prop = {
       _id: require('crypto').randomUUID(),
-      title: req.body.title || 'New Listing',
+      title: (req.body.title || 'New Listing').replace(/\s*\|\s*T\d+\s*$/i, ''), // strip ref number
       description: req.body.description || '',
       price: req.body.price || '',
       location: req.body.location || '',
@@ -203,6 +203,8 @@ router.get('/', async (req, res) => {
           });
           // Deduplicate by sourceUrl
           props = deduplicateProperties(props);
+          // Strip reference numbers from titles (defense-in-depth)
+          props.forEach(function(p) { if (p.title) p.title = p.title.replace(/\s*\|\s*T\d+\s*$/i, ''); });
           global.__inMemoryProperties = props.slice();
           persistCache();
           return res.json({ success: true, properties: props });
@@ -218,6 +220,8 @@ router.get('/', async (req, res) => {
       }
       props = props.filter(function(p) { return p.agentId === agentId; });
       props = deduplicateProperties(props);
+      // Strip reference numbers from titles (defense-in-depth)
+      props.forEach(function(p) { if (p.title) p.title = p.title.replace(/\s*\|\s*T\d+\s*$/i, ''); });
       return res.json({ success: true, properties: props, fromCache: true });
     }
     // MongoDB connected but returned empty — that IS the truth, no fallback
@@ -306,7 +310,7 @@ router.patch('/:id', async (req, res) => {
       for (var i = 0; i < global.__inMemoryProperties.length; i++) {
         if (String(global.__inMemoryProperties[i]._id) === req.params.id || global.__inMemoryProperties[i].id === req.params.id) {
           var prop = global.__inMemoryProperties[i];
-          if (req.body.title) prop.title = req.body.title;
+          if (req.body.title) prop.title = req.body.title.replace(/\s*\|\s*T\d+\s*$/i, '');
           if (req.body.price) prop.price = req.body.price;
           if (req.body.bedrooms !== undefined) prop.bedrooms = req.body.bedrooms;
           if (req.body.bathrooms !== undefined) prop.bathrooms = req.body.bathrooms;
