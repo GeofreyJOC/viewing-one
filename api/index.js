@@ -76,6 +76,7 @@ const emailRoutes = require('./src/routes/email-inbound');
 const scrapeRoutes = require('./src/routes/scrape');
 const uploadRoutes = require('./src/routes/upload-images');
 const feedbackRoutes = require('./src/routes/feedback');
+const adminRoutes = require('./src/routes/admin');
 
 const app = express();
 app.use(cors());
@@ -90,6 +91,7 @@ app.use('/api/properties', uploadRoutes);
 app.use('/api/properties', emailRoutes);
 app.use('/api', scrapeRoutes);
 app.use('/api/feedback', feedbackRoutes);
+app.use('/api/admin', adminRoutes);
 
 // Serve static
 app.use(express.static(path.join(__dirname, '..', 'public')));

@@ -791,4 +791,37 @@ router.delete('/:email', async (req, res) => {
   }
 });
 
+// POST /api/auth/admin-login
+router.post('/admin-login', async (req, res) => {
+  try {
+    const { email, password } = req.body;
+    if (!email || !password) {
+      return res.status(400).json({ success: false, message: 'Email and password required' });
+    }
+
+    const normalizedEmail = email.toLowerCase().trim();
+    const ADMIN_EMAIL = (process.env.ADMIN_EMAIL || 'admin@viewing.one').toLowerCase().trim();
+    const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'admin123';
+
+    if (normalizedEmail !== ADMIN_EMAIL) {
+      return res.status(401).json({ success: false, message: 'Invalid admin credentials' });
+    }
+
+    if (password !== ADMIN_PASSWORD) {
+      return res.status(401).json({ success: false, message: 'Invalid admin credentials' });
+    }
+
+    const token = jwt.sign({ role: 'admin', email: normalizedEmail }, JWT_SECRET, { expiresIn: '24h' });
+
+    res.json({
+      success: true,
+      token: token,
+      admin: { email: normalizedEmail, role: 'admin' }
+    });
+  } catch (error) {
+    console.error('Admin login error:', error);
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
+});
+
 module.exports = router;
