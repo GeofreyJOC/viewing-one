@@ -175,6 +175,7 @@ router.post('/email-inbound', async (req, res) => {
           sourceUrl: url,
           source: 'email',
           status: 'active',
+          agentEmail: agent.email,
           viewingSlots: generateSlots(),
           viewCount: 0,
           bookingCount: 0,

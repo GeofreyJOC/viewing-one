@@ -108,8 +108,10 @@ router.get('/agents', requireAdmin, async (req, res) => {
     // Count properties per agent
     var properties = global.__inMemoryProperties || [];
     safe.forEach(function(a) {
+      var agentIdStr = typeof a._id === 'string' ? a._id : (a._id ? a._id.toString() : '');
       a.propertyCount = properties.filter(function(p) {
-        return p.agentEmail === a.email || p.createdBy === a._id;
+        var pAgentId = p.agentId ? (typeof p.agentId === 'string' ? p.agentId : p.agentId.toString()) : '';
+        return p.agentEmail === a.email || p.createdBy === a._id || (agentIdStr && pAgentId === agentIdStr);
       }).length;
     });
 
@@ -150,8 +152,10 @@ router.get('/agents/:id', requireAdmin, async (req, res) => {
 
     // Get agent's properties
     var properties = global.__inMemoryProperties || [];
+    var agentIdStr = typeof agent._id === 'string' ? agent._id : (agent._id ? agent._id.toString() : '');
     var agentProps = properties.filter(function(p) {
-      return p.agentEmail === agent.email || p.createdBy === agent._id;
+      var pAgentId = p.agentId ? (typeof p.agentId === 'string' ? p.agentId : p.agentId.toString()) : '';
+      return p.agentEmail === agent.email || p.createdBy === agent._id || (agentIdStr && pAgentId === agentIdStr);
     });
 
     // Get agent's bookings
@@ -299,12 +303,22 @@ router.get('/properties', requireAdmin, async (req, res) => {
       }
     } catch(e) {}
 
-    // Remove sensitive fields
+    // Resolve agent email for properties that only have agentId
+    var agents = global.__inMemoryAgents || [];
     var safe = properties.map(function(p) {
       var out = {};
       Object.keys(p).forEach(function(k) {
         if (k !== '__v') out[k] = p[k];
       });
+      // If agentEmail is missing but agentId is set, look up the agent's email
+      if (!out.agentEmail && out.agentId) {
+        var aid = typeof out.agentId === 'string' ? out.agentId : out.agentId.toString();
+        var agent = agents.find(function(a) {
+          var aa = typeof a._id === 'string' ? a._id : (a._id ? a._id.toString() : '');
+          return aa === aid || a.email === aid;
+        });
+        if (agent) out.agentEmail = agent.email;
+      }
       return out;
     });
 
