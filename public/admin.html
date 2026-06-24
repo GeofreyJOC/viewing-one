@@ -196,7 +196,7 @@
             </div>
             <div class="section-body">
                 <div class="prop-row header">
-                    <span>Title</span><span>Agent</span><span>Price</span><span>Slug</span><span>Status</span><span>Created</span>
+                    <span>Title</span><span>Agent</span><span>Price</span><span>Slug</span><span>Status</span><span>Actions</span>
                 </div>
                 <div id="propertyList"><div class="empty-state">Loading properties...</div></div>
             </div>
@@ -364,14 +364,19 @@ function loadProperties() {
                 var created = p.createdAt ? new Date(p.createdAt).toLocaleDateString() : '—';
                 var price = p.price || p.displayPrice || '—';
                 var agentEmail = p.agentEmail || p.createdBy || '—';
+                var propId = typeof p._id === 'object' ? (p._id.$oid || JSON.stringify(p._id)) : (p._id || '');
+                var isSuspended = p.isActive === false || p.status === 'suspended';
                 return (
                     '<div class="prop-row">' +
-                    '<div style="font-weight:500;">' + escapeHtml((p.title || 'Untitled').substring(0, 40)) + '</div>' +
+                    '<div style="font-weight:500;">' + escapeHtml((p.title || 'Untitled').substring(0, 35)) + '</div>' +
                     '<div style="font-size:12px;color:#64748b;">' + escapeHtml(agentEmail) + '</div>' +
                     '<div style="color:#34d399;font-weight:600;">' + escapeHtml(String(price)) + '</div>' +
-                    '<div style="font-family:monospace;font-size:12px;color:#818cf8;">' + escapeHtml((p.slug || '—').substring(0, 30)) + '</div>' +
-                    '<div><span class="status-badge ' + (status === 'active' ? 'status-active' : '') + '">' + status.toUpperCase() + '</span></div>' +
-                    '<div style="font-size:12px;color:#64748b;">' + created + '</div>' +
+                    '<div style="font-family:monospace;font-size:12px;color:#818cf8;">' + escapeHtml((p.slug || '—').substring(0, 25)) + '</div>' +
+                    '<div><span class="status-badge ' + (isSuspended ? 'status-suspended' : 'status-active') + '">' + (isSuspended ? 'SUSPENDED' : 'ACTIVE') + '</span></div>' +
+                    '<div class="actions" style="display:flex;gap:2px;">' +
+                    '<button class="' + (isSuspended ? 'btn-sm-primary' : 'btn-warn') + '" style="flex:1;padding:3px 5px;font-size:11px;white-space:nowrap;" onclick="togglePropertyStatus(\'' + escapeHtml(propId) + '\',' + isSuspended + ')">' + (isSuspended ? 'Activate' : 'Suspend') + '</button>' +
+                    '<button class="btn-danger" style="flex:1;padding:3px 5px;font-size:11px;white-space:nowrap;" onclick="deleteProperty(\'' + escapeHtml(propId) + '\',\'' + escapeHtml((p.title || 'Untitled').substring(0, 30)) + '\')">Del</button>' +
+                    '</div>' +
                     '</div>'
                 );
             }).join('');
@@ -470,6 +475,45 @@ function saveAgent(agentEmail) {
         document.getElementById('modalMsg').className = 'msg error';
         document.getElementById('modalMsg').textContent = 'Connection error';
     });
+}
+
+function togglePropertyStatus(propId, isSuspended) {
+    var action = isSuspended ? 'Activate' : 'Suspend';
+    if (!confirm(action + ' this property?')) return;
+
+    fetch(API + '/api/admin/properties/' + encodeURIComponent(propId), {
+        method: 'PATCH',
+        headers: apiHeaders(),
+        body: JSON.stringify({ isActive: isSuspended })
+    })
+    .then(function(r) { return r.json(); })
+    .then(function(resp) {
+        if (resp.success) {
+            loadProperties();
+        } else {
+            alert('Error: ' + (resp.message || 'Update failed'));
+        }
+    })
+    .catch(function() { alert('Connection error'); });
+}
+
+function deleteProperty(propId, propTitle) {
+    if (!confirm('Delete "' + propTitle + '"? This cannot be undone.')) return;
+
+    fetch(API + '/api/admin/properties/' + encodeURIComponent(propId), {
+        method: 'DELETE',
+        headers: apiHeaders()
+    })
+    .then(function(r) { return r.json(); })
+    .then(function(resp) {
+        if (resp.success) {
+            loadProperties();
+            loadStats();
+        } else {
+            alert('Error: ' + (resp.message || 'Delete failed'));
+        }
+    })
+    .catch(function() { alert('Connection error'); });
 }
 
 function toggleAgentStatus(agentId, isCurrentlyActive) {

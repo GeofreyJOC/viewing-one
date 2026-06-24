@@ -328,4 +328,108 @@ router.get('/properties', requireAdmin, async (req, res) => {
   }
 });
 
+// PATCH /api/admin/properties/:id — update property (suspend/activate)
+router.patch('/properties/:id', requireAdmin, async (req, res) => {
+  try {
+    var properties = global.__inMemoryProperties || [];
+    var propId = req.params.id;
+
+    // Find in-memory
+    var index = properties.findIndex(function(p) {
+      return p._id && (String(p._id) === propId || p.slug === propId);
+    });
+
+    if (index === -1) {
+      return res.status(404).json({ success: false, message: 'Property not found' });
+    }
+
+    var allowedFields = ['status', 'isActive'];
+    allowedFields.forEach(function(field) {
+      if (req.body[field] !== undefined) {
+        properties[index][field] = req.body[field];
+      }
+    });
+
+    // Map status to isActive
+    if (req.body.status === 'suspended') {
+      properties[index].isActive = false;
+    } else if (req.body.status === 'active') {
+      properties[index].isActive = true;
+    }
+
+    // Update MongoDB
+    try {
+      if (typeof global.getMongoDbPromise === 'function') {
+        global.getMongoDbPromise().then(function(conn) {
+          if (conn) {
+            var update = {};
+            allowedFields.forEach(function(f) {
+              if (req.body[f] !== undefined) update[f] = req.body[f];
+            });
+            if (req.body.status === 'suspended' || req.body.status === 'active') {
+              update.isActive = req.body.status === 'active';
+            }
+            if (Object.keys(update).length > 0) {
+              var propIdStr = typeof properties[index]._id === 'string' ? properties[index]._id : properties[index]._id.toString();
+              conn.collection('properties').updateOne(
+                { _id: propIdStr },
+                { $set: update }
+              ).catch(function(e) {});
+            }
+          }
+        }).catch(function(e) {});
+      }
+    } catch(e) {}
+
+    res.json({ success: true, message: 'Property updated', property: properties[index] });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+// DELETE /api/admin/properties/:id — delete a property
+router.delete('/properties/:id', requireAdmin, async (req, res) => {
+  try {
+    var properties = global.__inMemoryProperties || [];
+    var propId = req.params.id;
+
+    var index = properties.findIndex(function(p) {
+      return p._id && (String(p._id) === propId || p.slug === propId);
+    });
+
+    if (index === -1) {
+      return res.status(404).json({ success: false, message: 'Property not found' });
+    }
+
+    var removed = properties.splice(index, 1)[0];
+
+    // Update in-memory cache file
+    try {
+      require('fs').writeFileSync('/tmp/properties.json', JSON.stringify(properties));
+    } catch(e) {}
+
+    // Delete from MongoDB
+    try {
+      if (typeof global.getMongoDbPromise === 'function') {
+        global.getMongoDbPromise().then(function(conn) {
+          if (conn) {
+            var propIdStr = typeof removed._id === 'string' ? removed._id : removed._id.toString();
+            conn.collection('properties').deleteOne({ _id: propIdStr }).catch(function(e) {});
+          }
+        }).catch(function(e) {});
+      }
+    } catch(e) {}
+
+    // Also try Mongoose
+    try {
+      var PropertyModel = require('../models/Property');
+      PropertyModel.deleteOne({ _id: removed._id }).catch(function(e) {});
+    } catch(e) {}
+
+    res.json({ success: true, message: 'Property deleted: ' + (removed.title || 'Unknown') });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
 module.exports = router;
