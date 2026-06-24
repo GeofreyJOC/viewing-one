@@ -71,8 +71,8 @@
 
         /* Agent rows */
         .agent-row, .prop-row {
-            display: grid; grid-template-columns: 2fr 1.5fr 1fr 1fr 1fr 100px;
-            gap: 8px; padding: 12px 16px; align-items: center; font-size: 13px;
+            display: grid; grid-template-columns: 1.2fr 1.5fr 0.8fr 0.8fr 0.5fr 150px;
+            gap: 6px; padding: 10px 14px; align-items: center; font-size: 13px;
             border-bottom: 1px solid #1a1d27;
         }
         .agent-row.header, .prop-row.header { color: #64748b; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; border-bottom: 1px solid #2a2d37; }
@@ -182,7 +182,7 @@
             </div>
             <div class="section-body">
                 <div class="agent-row header">
-                    <span>Name</span><span>Email</span><span>Plan</span><span>Status</span><span>Properties</span><span>Actions</span>
+                    <span>Name</span><span>Slug</span><span>Plan</span><span>Status</span><span>Props</span><span>Actions</span>
                 </div>
                 <div id="agentList"><div class="empty-state">Loading agents...</div></div>
             </div>
@@ -324,15 +324,15 @@ function loadAgents() {
                 var props = a.propertyCount || 0;
                 return (
                     '<div class="agent-row">' +
-                    '<div><div class="name">' + escapeHtml(a.name || 'Unnamed') + '</div><div class="slug">viewing.one/' + (a.slug || '?') + '</div></div>' +
-                    '<div>' + escapeHtml(email) + '</div>' +
+                    '<div class="name">' + escapeHtml(a.name || 'Unnamed') + '</div>' +
+                    '<div style="font-family:monospace;font-size:12px;color:#818cf8;">' + escapeHtml(a.slug || '?') + '</div>' +
                     '<div><span class="plan ' + planClass + '">' + (a.plan || 'starter').toUpperCase() + '</span></div>' +
                     '<div><span class="status-badge ' + statusClass + '">' + statusText + '</span></div>' +
-                    '<div>' + props + '</div>' +
-                    '<div class="actions">' +
-                    '<button class="btn-sm-primary" onclick="viewAgent(\'' + escapeHtml(a.email || a._id) + '\')">View</button>' +
-                    '<button class="btn-warn" onclick="resetAgentPw(\'' + escapeHtml(a.email || a._id) + '\', \'' + escapeHtml(a.name || 'Agent') + '\')">Reset PW</button>' +
-                    '<button class="' + (a.isActive !== false ? 'btn-danger' : 'btn-sm-primary') + '" onclick="toggleAgentStatus(\'' + escapeHtml(a.email || a._id) + '\', ' + (a.isActive !== false) + ')">' + (a.isActive !== false ? 'Suspend' : 'Activate') + '</button>' +
+                    '<div style="text-align:center;">' + props + '</div>' +
+                    '<div class="actions" style="display:flex;gap:2px;">' +
+                    '<button class="btn-sm-primary" style="flex:1;padding:3px 5px;font-size:11px;white-space:nowrap;" onclick="viewAgent(\'' + escapeHtml(a.email || a._id) + '\')">View</button>' +
+                    '<button class="btn-warn" style="flex:1;padding:3px 5px;font-size:11px;white-space:nowrap;" onclick="resetAgentPw(\'' + escapeHtml(a.email || a._id) + '\', \'' + escapeHtml(a.name || 'Agent') + '\')">PW</button>' +
+                    '<button class="' + (a.isActive !== false ? 'btn-danger' : 'btn-sm-primary') + '" style="flex:1;padding:3px 5px;font-size:11px;white-space:nowrap;" onclick="toggleAgentStatus(\'' + escapeHtml(a.email || a._id) + '\', ' + (a.isActive !== false) + ')">' + (a.isActive !== false ? 'Suspend' : 'Activate') + '</button>' +
                     '</div>' +
                     '</div>'
                 );
