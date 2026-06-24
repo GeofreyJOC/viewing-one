@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Contact Us — Viewing.One</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Inter', sans-serif;
+      background: #0d0d0d;
+      color: #e8e4df;
+      line-height: 1.6;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+    .container { max-width: 520px; margin: 0 auto; padding: 0 24px; width: 100%; }
+    header {
+      padding: 20px 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .logo {
+      font-family: 'Playfair Display', serif;
+      font-size: 1.4rem;
+      color: #e8e4df;
+      text-decoration: none;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .logo-icon {
+      background: #c9a96e;
+      color: #0d0d0d;
+      width: 32px;
+      height: 32px;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 14px;
+      font-weight: 700;
+      font-family: 'Inter', sans-serif;
+    }
+    .back-link {
+      color: #888;
+      font-size: 14px;
+      text-decoration: none;
+    }
+    .back-link:hover { color: #c9a96e; }
+    main {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 40px 24px 80px;
+    }
+    .form-card {
+      background: #1a1a1a;
+      border: 1px solid #2a2a2a;
+      border-radius: 16px;
+      padding: 40px 32px;
+    }
+    h1 {
+      font-family: 'Playfair Display', serif;
+      font-size: 1.8rem;
+      color: #fff;
+      margin-bottom: 8px;
+    }
+    .subtitle {
+      color: #888;
+      font-size: 14px;
+      margin-bottom: 28px;
+    }
+    label {
+      display: block;
+      font-size: 13px;
+      font-weight: 600;
+      color: #ccc;
+      margin-bottom: 6px;
+    }
+    input, textarea {
+      width: 100%;
+      padding: 12px 14px;
+      background: #222;
+      border: 1px solid #333;
+      border-radius: 10px;
+      color: #e8e4df;
+      font-family: 'Inter', sans-serif;
+      font-size: 14px;
+      margin-bottom: 18px;
+      transition: border 0.2s;
+    }
+    input:focus, textarea:focus {
+      outline: none;
+      border-color: #c9a96e;
+    }
+    textarea { resize: vertical; min-height: 120px; }
+    .btn-submit {
+      width: 100%;
+      background: #c9a96e;
+      color: #0d0d0d;
+      border: none;
+      padding: 14px;
+      border-radius: 10px;
+      font-size: 15px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    .btn-submit:hover { background: #d4b87a; }
+    .btn-submit:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+    .status-msg {
+      text-align: center;
+      padding: 12px;
+      border-radius: 10px;
+      font-size: 14px;
+      margin-bottom: 18px;
+      display: none;
+    }
+    .status-msg.success { display: block; background: #0a3d2e; color: #34d399; border: 1px solid #34d399; }
+    .status-msg.error { display: block; background: #3d0a0a; color: #f87171; border: 1px solid #f87171; }
+    footer {
+      text-align: center;
+      padding: 24px;
+      color: #555;
+      font-size: 12px;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <a href="/" class="logo"><span class="logo-icon">V1</span>Viewing.One</a>
+    <a href="/" class="back-link">← Back</a>
+  </header>
+  <main>
+    <div class="container">
+      <div class="form-card">
+        <h1>Get in touch</h1>
+        <p class="subtitle">Send us a message and we'll get back to you.</p>
+        <div id="statusMsg" class="status-msg"></div>
+        <form id="contactForm" onsubmit="return sendMessage(event)">
+          <label for="name">Your name</label>
+          <input type="text" id="name" required placeholder="e.g. John Doe">
+          <label for="email">Your email</label>
+          <input type="email" id="email" required placeholder="john@example.com">
+          <label for="message">Message</label>
+          <textarea id="message" required placeholder="How can we help you?"></textarea>
+          <button type="submit" class="btn-submit" id="submitBtn">Send Message</button>
+        </form>
+      </div>
+    </div>
+  </main>
+  <footer>&copy; 2026 Viewing.One</footer>
+  <script>
+    function sendMessage(e) {
+      e.preventDefault();
+      var btn = document.getElementById('submitBtn');
+      var msgDiv = document.getElementById('statusMsg');
+      btn.disabled = true;
+      btn.textContent = 'Sending...';
+      msgDiv.className = 'status-msg';
+      msgDiv.style.display = 'none';
+
+      var data = {
+        name: document.getElementById('name').value.trim(),
+        email: document.getElementById('email').value.trim(),
+        message: document.getElementById('message').value.trim()
+      };
+
+      fetch('/api/contact', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data)
+      })
+      .then(function(r) { return r.json(); })
+      .then(function(resp) {
+        if (resp.success) {
+          msgDiv.className = 'status-msg success';
+          msgDiv.textContent = 'Thanks! Your message has been sent. We\'ll get back to you soon.';
+          msgDiv.style.display = 'block';
+          document.getElementById('contactForm').reset();
+        } else {
+          msgDiv.className = 'status-msg error';
+          msgDiv.textContent = resp.message || 'Something went wrong. Please try again.';
+          msgDiv.style.display = 'block';
+        }
+      })
+      .catch(function() {
+        msgDiv.className = 'status-msg error';
+        msgDiv.textContent = 'Connection error. Please try again.';
+        msgDiv.style.display = 'block';
+      })
+      .finally(function() {
+        btn.disabled = false;
+        btn.textContent = 'Send Message';
+      });
+
+      return false;
+    }
+  </script>
+</body>
+</html>
