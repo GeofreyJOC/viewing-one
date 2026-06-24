@@ -162,6 +162,13 @@ router.post('/email-inbound', async (req, res) => {
           if (subjBath) scraped.bathrooms = parseInt(subjBath[1], 10);
         }
 
+        var propSlug = (bestTitle || 'property')
+          .toLowerCase()
+          .replace(/[^a-z0-9]+/g, '-')
+          .replace(/^-|-$/g, '')
+          .replace(/-+/g, '-')
+          .substring(0, 60) || 'property-' + Date.now().toString(36);
+
         var propData = {
           title: bestTitle.substring(0, 200),
           description: scraped.description || 'Imported from ' + url,
@@ -175,6 +182,7 @@ router.post('/email-inbound', async (req, res) => {
           sourceUrl: url,
           source: 'email',
           status: 'active',
+          slug: propSlug,
           agentEmail: agent.email,
           viewingSlots: generateSlots(),
           viewCount: 0,
