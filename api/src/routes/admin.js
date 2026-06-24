@@ -31,7 +31,21 @@ router.get('/stats', requireAdmin, async (req, res) => {
   try {
     var agents = global.__inMemoryAgents || [];
     var properties = global.__inMemoryProperties || [];
-    var bookings = global.__bookingCache || [];
+
+    // Calculate bookings from embedded data in properties (viewingSlots[].bookings[] + viewingRequests[])
+    var bookingCount = 0;
+    properties.forEach(function(p) {
+      if (p.viewingRequests && Array.isArray(p.viewingRequests)) {
+        bookingCount += p.viewingRequests.length;
+      }
+      if (p.viewingSlots && Array.isArray(p.viewingSlots)) {
+        p.viewingSlots.forEach(function(slot) {
+          if (slot.bookings && Array.isArray(slot.bookings)) {
+            bookingCount += slot.bookings.length;
+          }
+        });
+      }
+    });
 
     // Try MongoDB for more accurate counts
     var mongoAgentCount = 0, mongoPropCount = 0, mongoBookingCount = 0;
@@ -44,7 +58,20 @@ router.get('/stats', requireAdmin, async (req, res) => {
         if (db && db !== '__TIMEOUT__') {
           mongoAgentCount = await db.collection('agents').countDocuments();
           mongoPropCount = await db.collection('properties').countDocuments();
-          mongoBookingCount = await db.collection('bookings').countDocuments();
+          // Count bookings from property documents (embedded, no separate collection)
+          var propsWithBookings = await db.collection('properties').find({}).project({ viewingRequests: 1, viewingSlots: 1 }).toArray();
+          propsWithBookings.forEach(function(p) {
+            if (p.viewingRequests && Array.isArray(p.viewingRequests)) {
+              mongoBookingCount += p.viewingRequests.length;
+            }
+            if (p.viewingSlots && Array.isArray(p.viewingSlots)) {
+              p.viewingSlots.forEach(function(slot) {
+                if (slot.bookings && Array.isArray(slot.bookings)) {
+                  mongoBookingCount += slot.bookings.length;
+                }
+              });
+            }
+          });
         }
       }
     } catch(e) {}
@@ -54,7 +81,7 @@ router.get('/stats', requireAdmin, async (req, res) => {
       stats: {
         agents: Math.max(agents.length, mongoAgentCount),
         properties: Math.max(properties.length, mongoPropCount),
-        bookings: Math.max(bookings.length, mongoBookingCount),
+        bookings: Math.max(bookingCount, mongoBookingCount),
         activeProperties: properties.filter(function(p) { return p.status !== 'hidden' && p.isActive !== false; }).length,
         inMemoryAgents: agents.length,
         inMemoryProps: properties.length
