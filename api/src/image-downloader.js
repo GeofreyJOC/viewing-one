@@ -44,8 +44,7 @@ function downloadImage(url, propertyId, index) {
     }
 
     var client = url.startsWith('https') ? https : http;
-
-    client.get(url, { timeout: 15000, rejectUnauthorized: false }, function(resp) {
+    var imgReq = client.get(url, { timeout: 15000, rejectUnauthorized: false }, function(resp) {
       // Handle redirects
       if (resp.statusCode >= 300 && resp.statusCode < 400 && resp.headers.location) {
         var redirectUrl = resp.headers.location;
@@ -77,14 +76,13 @@ function downloadImage(url, propertyId, index) {
       });
     });
 
-    client.on('error', function() {
+    imgReq.on('error', function() {
       resolve(null);
     });
-
-    // Timeout
-    setTimeout(function() {
+    imgReq.setTimeout(15000, function() {
+      imgReq.destroy();
       resolve(null);
-    }, 15000);
+    });
   });
 }
 
