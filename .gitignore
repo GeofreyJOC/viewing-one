@@ -20,3 +20,6 @@ save-agent.js
 seed-*.js
 strip-images.js
 test-dns.html
+
+# Runtime data cache (regenerated on startup)
+api/.data/
