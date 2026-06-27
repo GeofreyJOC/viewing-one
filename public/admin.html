@@ -85,6 +85,7 @@
         .plan-pro { background: rgba(129,140,248,0.15); color: #818cf8; }
         .plan-pro-annual { background: rgba(16,185,129,0.15); color: #34d399; }
         .plan-starter { background: rgba(148,163,184,0.15); color: #94a3b8; }
+        .plan-demo { background: rgba(148,163,184,0.15); color: #94a3b8; }
         .status-badge { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 11px; font-weight: 600; }
         .status-active { background: rgba(16,185,129,0.15); color: #34d399; }
         .status-suspended { background: rgba(239,68,68,0.15); color: #f87171; }
@@ -317,7 +318,7 @@ function loadAgents() {
         if (data.success && data.agents.length > 0) {
             countLabel.textContent = data.agents.length + ' total';
             list.innerHTML = data.agents.map(function(a) {
-                var planClass = 'plan-' + (a.plan || 'starter');
+                var planClass = 'plan-' + (a.plan || 'demo');
                 var statusClass = a.isActive !== false ? 'status-active' : 'status-suspended';
                 var statusText = a.isActive !== false ? 'Active' : 'Suspended';
                 var email = a.email || '—';
@@ -326,7 +327,7 @@ function loadAgents() {
                     '<div class="agent-row">' +
                     '<div class="name">' + escapeHtml(a.name || 'Unnamed') + '</div>' +
                     '<div style="font-family:monospace;font-size:12px;"><a href="' + API + '/' + escapeHtml(a.slug || '') + '" target="_blank" style="color:#818cf8;text-decoration:none;">' + escapeHtml(a.slug || '?') + ' ↗</a></div>' +
-                    '<div><span class="plan ' + planClass + '">' + (a.plan || 'starter').toUpperCase() + '</span></div>' +
+                    '<div><span class="plan ' + planClass + '">' + (a.plan || 'demo').toUpperCase() + '</span></div>' +
                     '<div><span class="status-badge ' + statusClass + '">' + statusText + '</span></div>' +
                     '<div style="text-align:center;">' + props + '</div>' +
                     '<div class="actions" style="display:flex;gap:2px;">' +
@@ -422,7 +423,7 @@ function viewAgent(agentId) {
                 '<div class="form-group"><label>Plan</label><select id="editAgentPlan">' +
                     '<option value="pro"' + (a.plan === 'pro' ? ' selected' : '') + '>Pro</option>' +
                     '<option value="pro-annual"' + (a.plan === 'pro-annual' ? ' selected' : '') + '>Pro Annual</option>' +
-                    '<option value="starter"' + (a.plan === 'starter' || !a.plan ? ' selected' : '') + '>Starter</option>' +
+                    '<option value="demo"' + (a.plan === 'demo' || !a.plan ? ' selected' : '') + '>Demo</option>' +
                 '</select></div>' +
                 '<div class="form-group"><label>Agent Page</label><input type="text" value="viewing.one/' + escapeHtml(a.slug || '') + '" disabled style="opacity:0.6;"></div>' +
                 (propsHtml || '') +

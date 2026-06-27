@@ -60,7 +60,7 @@ router.post('/register', async (req, res) => {
     const agent = {
       _id: require('crypto').createHash('md5').update(normalizedEmail).digest('hex').slice(0,12), name, email: normalizedEmail,
       password: hashedPassword, companyName, slug, phone, website,
-      plan: plan || 'starter', primaryColor: '#1a73e8', secondaryColor: '#2c3e50',
+      plan: plan || 'demo', primaryColor: '#1a73e8', secondaryColor: '#2c3e50',
       accentColor: '#e74c3c', template: 'modern-corporate', tagline: '',
       isActive: true, isVerified: false, createdAt: new Date()
     };
@@ -153,7 +153,7 @@ router.post('/register', async (req, res) => {
       success: true, message: 'Agent registered successfully', token,
       agent: {
         id: agentId.toString(), name: agentName, email: normalizedEmail,
-        companyName: agentCompany, slug, plan: plan || 'starter',
+        companyName: agentCompany, slug, plan: plan || 'demo',
         logo: '', url: `https://viewing.one/${slug}`, dashboardUrl: `/dashboard.html?registered=1`
       }
     });
