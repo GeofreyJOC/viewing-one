@@ -4,6 +4,7 @@
 const express = require('express');
 const router = express.Router();
 const crypto = require('crypto');
+const imageDownloader = require('../image-downloader');
 
 // Cache the MongoDB connection promise so multiple calls share it
 let mongoConnectionPromise = null;
@@ -239,7 +240,33 @@ router.post('/email-inbound', async (req, res) => {
                 try {
                   require('fs').writeFileSync('/tmp/properties.json', JSON.stringify(global.__inMemoryProperties));
                 } catch(e) {}
-                
+
+                // Download images locally
+                if (propData.images && propData.images.length > 0 && propData.images[0] && propData.images[0].indexOf && propData.images[0].indexOf('://') > 0) {
+                  imageDownloader.downloadPropertyImages(propData.images, newId).then(function(localUrls) {
+                    if (localUrls.length > 0) {
+                      // Update in-memory
+                      try {
+                        if (global.__inMemoryProperties) {
+                          var idx = global.__inMemoryProperties.findIndex(function(p) { return (p._id || '').toString() === newId; });
+                          if (idx !== -1) {
+                            global.__inMemoryProperties[idx].images = localUrls;
+                          }
+                        }
+                      } catch(e) {}
+                      // Update MongoDB
+                      try {
+                        mongo.db.collection('properties').updateOne(
+                          { _id: newId },
+                          { $set: { images: localUrls } }
+                        ).catch(function() {});
+                      } catch(e) {}
+                    }
+                  }).catch(function(e) {
+                    console.error('Image download error:', e.message);
+                  });
+                }
+
                 saved = true;
               } else {
                 // Property already existed (matched by sourceUrl)
@@ -279,6 +306,24 @@ router.post('/email-inbound', async (req, res) => {
           try {
             require('fs').writeFileSync('/tmp/properties.json', JSON.stringify(global.__inMemoryProperties));
           } catch(e) {}
+
+          // Download images locally in fallback path
+          if (propData.images && propData.images.length > 0 && propData.images[0] && propData.images[0].indexOf && propData.images[0].indexOf('://') > 0) {
+            imageDownloader.downloadPropertyImages(propData.images, propData._id).then(function(localUrls) {
+              if (localUrls.length > 0) {
+                try {
+                  if (global.__inMemoryProperties) {
+                    var idx = global.__inMemoryProperties.findIndex(function(p) { return (p._id || '').toString() === propData._id; });
+                    if (idx !== -1) {
+                      global.__inMemoryProperties[idx].images = localUrls;
+                    }
+                  }
+                } catch(e) {}
+              }
+            }).catch(function(e) {
+              console.error('Image download error (fallback):', e.message);
+            });
+          }
         }
       } catch(err) {
         results.push({

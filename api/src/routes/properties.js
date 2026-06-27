@@ -2,6 +2,7 @@
 const express = require('express');
 const router = express.Router();
 const { ObjectId } = require('mongodb');
+const imageDownloader = require('../image-downloader');
 
 // Helper: get the raw MongoDB database
 async function getDb() {
@@ -141,10 +142,32 @@ router.post('/', async (req, res) => {
               var base = imgUrls[ui].split('?')[0].split('#')[0];
               if (!seen[base]) { seen[base] = true; deduped.push(imgUrls[ui]); }
             }
-            prop.images = deduped.slice(0, 1);
+            prop.images = deduped.slice(0, 8);
           }
         }
       } catch(e) {}
+    }
+
+    // Download images locally (if we have remote URLs from scraping)
+    if (prop.images && prop.images.length > 0 && prop.images[0].indexOf('://') > 0) {
+      try {
+        var localImages = await imageDownloader.downloadPropertyImages(prop.images, prop._id);
+        if (localImages.length > 0) {
+          prop.images = localImages;
+          // Update MongoDB with local URLs
+          try {
+            var dbUpdate = await getDb();
+            if (dbUpdate) {
+              await dbUpdate.collection('properties').updateOne(
+                { _id: prop._id },
+                { $set: { images: localImages } }
+              );
+            }
+          } catch(e) {}
+        }
+      } catch(imgErr) {
+        console.error('Image download error (non-fatal):', imgErr.message);
+      }
     }
     
     // Don't reject on scrape failure — Vercel can't scrape PP from iad1 region
