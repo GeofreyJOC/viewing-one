@@ -403,7 +403,7 @@
         </div>
         <div class="form-group">
             <label>Max bookings per slot</label>
-            <input type="number" id="slotMax" value="1" min="1" max="20">
+            <input type="number" id="slotMax" value="10" min="1" max="20">
         </div>
         <div class="btn-row">
             <button class="btn btn-outline" onclick="closeModal('slotModal')">Cancel</button>
@@ -426,7 +426,7 @@
         </div>
         <div class="form-group">
             <label>Max visitors per slot</label>
-            <input type="number" id="slotMaxInput" value="1" min="1" max="20">
+            <input type="number" id="slotMaxInput" value="10" min="1" max="20">
         </div>
         <div class="btn-row">
             <button class="btn btn-outline" onclick="closeModal('addSlotModal')">Cancel</button>
@@ -766,7 +766,7 @@ function loadTimeSlots() {
                 html += '    <div class="slot-chip" style="display:inline-flex;align-items:center;gap:6px;background:#eef2ff;border:1px solid #dde4ff;border-radius:8px;padding:8px 12px;font-size:13px;">';
                 html += '      <span>' + dateStr + '</span>';
                 html += '      <span style="color:#666;">' + s.time + '</span>';
-                html += '      <span style="color:#888;font-size:12px;">(' + bookedCount + '/' + (s.maxBookings || 1) + ')' + '</span>';
+                html += '      <span style="color:#888;font-size:12px;">(' + bookedCount + '/' + (s.maxBookings || 10) + ')' + '</span>';
                 html += '      <span onclick="deleteTimeSlot(\'' + pid + '\',\'' + s.id + '\')" style="cursor:pointer;color:#dc2626;font-size:16px;line-height:1;margin-left:4px;" title="Delete slot">&times;</span>';
                 html += '    </div>';
             }
@@ -803,14 +803,14 @@ function openAddSlot(propertyId) {
     tomorrow.setDate(tomorrow.getDate() + 1);
     document.getElementById('slotDateInput').value = tomorrow.toISOString().split('T')[0];
     document.getElementById('slotTimeInput').value = '10:00';
-    document.getElementById('slotMaxInput').value = 1;
+    document.getElementById('slotMaxInput').value = 10;
     openModal('addSlotModal');
 }
 
 async function saveNewSlot() {
     var date = document.getElementById('slotDateInput').value;
     var time = document.getElementById('slotTimeInput').value;
-    var maxBookings = parseInt(document.getElementById('slotMaxInput').value) || 1;
+    var maxBookings = parseInt(document.getElementById('slotMaxInput').value) || 10;
     
     if (!date || !time) {
         showToast('Please pick a date and time', 'error');
@@ -1076,7 +1076,7 @@ function manageSlots(propId, title) {
         for (var i = 0; i < slots.length; i++) {
             var s = slots[i];
             html += '<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid #eef2ff;">';
-            html += '  <span>' + s.day + ' ' + s.time + ' <span class="badge badge-green">max ' + (s.maxBookings || 1) + '</span></span>';
+            html += '  <span>' + s.day + ' ' + s.time + ' <span class="badge badge-green">max ' + (s.maxBookings || 10) + '</span></span>';
             html += '  <button class="btn btn-sm btn-danger" onclick="removeSlot(\'' + propId + '\',\'' + (s._id || s.id || '') + '\')">✕</button>';
             html += '</div>';
         }
@@ -1088,7 +1088,7 @@ function manageSlots(propId, title) {
 async function savePropSlot() {
     var day = document.getElementById('propSlotDay').value;
     var time = document.getElementById('propSlotTime').value;
-    var max = parseInt(document.getElementById('propSlotMax').value) || 1;
+    var max = parseInt(document.getElementById('propSlotMax').value) || 10;
     
     try {
         var resp = await fetch(API + '/api/properties/' + currentPropSlotId + '/slots', {

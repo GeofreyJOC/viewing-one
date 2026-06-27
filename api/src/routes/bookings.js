@@ -136,6 +136,11 @@ router.post('/', async (req, res) => {
 
         // Allow multiple bookings per slot
         if (!slot.bookings) slot.bookings = [];
+        // Enforce max bookings per slot
+        var slotCapacity = slot.maxBookings || 10;
+        if (slot.bookings.length >= slotCapacity) {
+          return res.status(400).json({ success: false, message: 'This time slot is full (max ' + slotCapacity + ' bookings)' });
+        }
         slot.bookings.push({
           visitorName: visitorName,
           visitorWhatsApp: visitorWhatsApp,
@@ -254,6 +259,11 @@ router.post('/', async (req, res) => {
 
     // Allow multiple bookings per slot
     if (!slot.bookings) slot.bookings = [];
+    // Enforce max bookings per slot
+    var slotCapacity = slot.maxBookings || 10;
+    if (slot.bookings.length >= slotCapacity) {
+      return res.status(400).json({ success: false, message: 'This time slot is full (max ' + slotCapacity + ' bookings)' });
+    }
     slot.bookings.push({
       visitorName: visitorName,
       visitorWhatsApp: visitorWhatsApp,

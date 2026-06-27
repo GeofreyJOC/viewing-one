@@ -374,7 +374,7 @@ router.post('/:id/slots', async (req, res) => {
       id: require('crypto').randomUUID(),
       date: date,
       time: time,
-      maxBookings: parseInt(maxBookings, 10) || 1,
+      maxBookings: parseInt(maxBookings, 10) || 10,
       currentBookings: 0,
       bookings: [],
       bookingCount: 0,
