@@ -136,11 +136,9 @@ router.post('/', async (req, res) => {
 
         // Allow multiple bookings per slot
         if (!slot.bookings) slot.bookings = [];
-        // Enforce max bookings per slot
+        // Soft capacity cap: still accept the booking but flag it to the visitor
         var slotCapacity = slot.maxBookings || 10;
-        if (slot.bookings.length >= slotCapacity) {
-          return res.status(400).json({ success: false, message: 'This time slot is full (max ' + slotCapacity + ' bookings)' });
-        }
+        var isOverCapacity = slot.bookings.length >= slotCapacity;
         slot.bookings.push({
           visitorName: visitorName,
           visitorWhatsApp: visitorWhatsApp,
@@ -148,7 +146,9 @@ router.post('/', async (req, res) => {
           bookedAt: new Date()
         });
         slot.bookingCount = slot.bookings.length;
-        property.bookingCount = (property.bookingCount || 0) + 1;
+        if (!isOverCapacity) {
+          property.bookingCount = (property.bookingCount || 0) + 1;
+        }
         await property.save();
 
         if (Agent) {
@@ -161,8 +161,12 @@ router.post('/', async (req, res) => {
         // Send email notification async (don't block response)
         notifyAgentBooking(agentEmail, property.title, visitorName, visitorWhatsApp, visitorEmail, slot.date, slot.time, propertyId);
 
+        var bookedMsg = isOverCapacity
+          ? 'This time slot has reached capacity, but your details have been sent to the agent. They\'ll be in touch when a new slot opens up.'
+          : 'Viewing booked successfully!';
+
         return res.status(201).json({
-          success: true, message: 'Viewing booked successfully!',
+          success: true, message: bookedMsg,
           booking: { propertyTitle: property.title, date: slot.date, time: slot.time, visitorName }
         });
       } catch (dbErr) {
@@ -259,11 +263,9 @@ router.post('/', async (req, res) => {
 
     // Allow multiple bookings per slot
     if (!slot.bookings) slot.bookings = [];
-    // Enforce max bookings per slot
+    // Soft capacity cap: still accept the booking but flag it to the visitor
     var slotCapacity = slot.maxBookings || 10;
-    if (slot.bookings.length >= slotCapacity) {
-      return res.status(400).json({ success: false, message: 'This time slot is full (max ' + slotCapacity + ' bookings)' });
-    }
+    var isOverCapacity = slot.bookings.length >= slotCapacity;
     slot.bookings.push({
       visitorName: visitorName,
       visitorWhatsApp: visitorWhatsApp,
@@ -316,8 +318,12 @@ router.post('/', async (req, res) => {
     // Send notification email async
     notifyAgentBooking(agentEmail, prop.title, visitorName, visitorWhatsApp, visitorEmail, slot.date, slot.time, prop._id || prop.id || propertyId);
 
+    var bookedMsg = isOverCapacity
+      ? 'This time slot has reached capacity, but your details have been sent to the agent. They\'ll be in touch when a new slot opens up.'
+      : 'Viewing booked successfully!';
+
     res.status(201).json({
-      success: true, message: 'Viewing booked successfully!',
+      success: true, message: bookedMsg,
       booking: { propertyTitle: prop.title, date: slot.date, time: slot.time, visitorName }
     });
 
