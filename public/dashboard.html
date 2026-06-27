@@ -733,7 +733,11 @@ function loadTimeSlots() {
         var pid = p._id || p.id;
         html += '<div class="prop-slots-block" id="prop-slots-' + pid + '" style="border:1px solid #eef2ff;border-radius:12px;padding:16px;margin-bottom:16px;">';
         html += '  <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px;">';
-        if (imgSrc) html += '    <img src="' + imgSrc + '" style="width:48px;height:48px;border-radius:8px;object-fit:cover;" alt="">';
+        if (imgSrc) {
+          var imgTag = typeof imgSrc === 'string' ? imgSrc : (imgSrc.url || '');
+          if (imgTag) html += '    <img src="' + imgTag + '" style="width:48px;height:48px;border-radius:8px;object-fit:cover;" alt="">';
+          else html += '    <div style="width:48px;height:48px;border-radius:8px;background:#eef2ff;display:flex;align-items:center;justify-content:center;font-size:18px;">🏠</div>';
+        }
         html += '    <div style="flex:1;">';
         html += '      <div style="font-weight:600;font-size:15px;">' + p.title + '</div>';
         html += '      <div style="font-size:13px;color:#888;">' + (p.price || '') + (p.location ? ' &middot; ' + p.location : '') + '</div>';
@@ -1029,7 +1033,7 @@ function renderProperties() {
         var imgSrc = (p.images && p.images.length > 0) ? p.images[0] : null;
         var beds = p.bedrooms || null;
         var baths = p.bathrooms || null;
-        var slotsCount = (p.slots || []).length;
+        var slotsCount = (p.viewingSlots || p.slots || []).length;
         
         html += '<div class="prop-card">';
         html += '  <div class="img-wrap">';
