@@ -183,15 +183,15 @@
         .slot-btn .slot-time { font-weight: 700; font-size: 0.95em; }
         .btn-request-booking {
             width: 100%;
-            padding: 12px;
-            margin-top: 10px;
-            background: white;
+            padding: 8px;
+            background: #f8faff;
             color: var(--primary-color);
-            border: 2px dashed var(--primary-color);
+            border: 1px solid var(--primary-color);
             border-radius: 8px;
-            font-size: 0.95em;
+            font-size: 0.85em;
             font-weight: 600;
             cursor: pointer;
+            text-align: center;
             transition: all 0.2s;
         }
         .btn-request-booking:hover { background: var(--primary-color); color: white; }
@@ -588,7 +588,7 @@
                     }
                     slotsHTML += '</div>';
                 } else {
-                    slotsHTML = '<button class="btn-request-booking" onclick="openRequestBooking(\'' + property.id + '\', \'' + property.title.replace(/'/g, "\\'") + '\')">📅 Request Booking</button>';
+                    slotsHTML = '<div class="slot-grid"><button class="btn-request-booking" onclick="openRequestBooking(\'' + property.id + '\', \'' + property.title.replace(/'/g, "\\'") + '\')">📅 Request Booking</button></div>';
                 }
 
                 card.innerHTML =
