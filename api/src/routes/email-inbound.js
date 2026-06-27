@@ -179,7 +179,7 @@ router.post('/email-inbound', async (req, res) => {
           bathrooms: scraped.bathrooms || 0,
           size: scraped.size || '',
           propertyType: scraped.propertyType || '',
-          images: scraped.images && scraped.images.length > 0 ? scraped.images.slice(0, 10) : [],
+          images: scraped.images && scraped.images.length > 0 ? scraped.images.slice(0, 1) : [],
           sourceUrl: url,
           source: 'email',
           status: 'active',

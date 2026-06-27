@@ -97,8 +97,8 @@ async function downloadPropertyImages(imageUrls, propertyId) {
     return [];
   }
 
-  // Limit to first 8 images max
-  var urls = imageUrls.slice(0, 8);
+  // Limit to first image only (reference thumbnail, rest viewed on listing site)
+  var urls = imageUrls.slice(0, 1);
 
   var results = await Promise.all(urls.map(function(url, i) {
     return downloadImage(url, propertyId, i);

@@ -142,19 +142,19 @@ router.post('/', async (req, res) => {
               var base = imgUrls[ui].split('?')[0].split('#')[0];
               if (!seen[base]) { seen[base] = true; deduped.push(imgUrls[ui]); }
             }
-            prop.images = deduped.slice(0, 8);
+            prop.images = deduped.slice(0, 1);
           }
         }
       } catch(e) {}
     }
 
-    // Download images locally (if we have remote URLs from scraping)
+    // Download the image locally (if remote URL from scraping)
     if (prop.images && prop.images.length > 0 && prop.images[0].indexOf('://') > 0) {
       try {
         var localImages = await imageDownloader.downloadPropertyImages(prop.images, prop._id);
         if (localImages.length > 0) {
           prop.images = localImages;
-          // Update MongoDB with local URLs
+          // Update MongoDB with local URL
           try {
             var dbUpdate = await getDb();
             if (dbUpdate) {
