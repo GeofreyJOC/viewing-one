@@ -162,6 +162,7 @@
         <div id="planBadge" style="margin-top:4px;font-size:11px;font-weight:600;border-radius:6px;padding:2px 8px;display:inline-block;"></div>
         <div style="margin-top:8px;display:flex;gap:6px;flex-wrap:wrap;">
             <button onclick="startTour()" style="font-size:11px;background:transparent;color:#818cf8;border:1px solid #818cf8;padding:3px 10px;border-radius:6px;cursor:pointer;">🎯 Tour</button>
+            <button id="sidebarUpgradeBtn" onclick="switchTab('profile')" style="font-size:11px;background:#4f46e5;color:white;border:none;padding:3px 10px;border-radius:6px;cursor:pointer;display:none;">💎 Upgrade</button>
             <a href="/logout" style="color:#dc2626;font-size:12px;text-decoration:none;" onclick="doLogout();return false;">Log out</a>
         </div>
     </div>
@@ -295,6 +296,33 @@
             <div id="pwStrength" style="font-size:12px;margin-top:-8px;margin-bottom:12px;height:18px;"></div>
             <button class="btn btn-outline" onclick="changePassword()">🔑 Update Password</button>
             <div id="pwChangeMsg" style="font-size:13px;margin-top:8px;"></div>
+        </div>
+
+        <div class="card" id="planUpgradeCard">
+            <h3>💎 Plan <span id="profilePlanBadge" style="font-size:12px;font-weight:600;border-radius:6px;padding:2px 8px;display:inline-block;background:#e5e7eb;color:#374151;">DEMO</span></h3>
+            <p id="planDescription" style="font-size:14px;color:#888;margin-bottom:12px;">Free trial — upgrade to keep your page live.</p>
+            <div id="planStatusSection">
+                <div id="upgradeOptions" style="display:flex;gap:12px;flex-wrap:wrap;margin-top:8px;">
+                    <div style="flex:1;min-width:180px;background:#f8faff;border:1px solid #e0e7ff;border-radius:12px;padding:16px;text-align:center;">
+                        <div style="font-size:13px;color:#888;">Monthly</div>
+                        <div style="font-size:24px;font-weight:700;color:#4f46e5;margin:4px 0;">R199</div>
+                        <div style="font-size:12px;color:#888;margin-bottom:12px;">per month</div>
+                        <div style="font-size:12px;color:#555;margin-bottom:12px;">✅ Active agent page<br>✅ Unlimited listings<br>✅ Booking management<br>✅ Email notifications</div>
+                        <button class="btn btn-primary btn-sm" id="upgradeProBtn" style="width:100%;" onclick="startUpgrade('pro')">Upgrade</button>
+                    </div>
+                    <div style="flex:1;min-width:180px;background:#fefce8;border:1px solid #fde68a;border-radius:12px;padding:16px;text-align:center;">
+                        <div style="font-size:13px;color:#888;">Annual</div>
+                        <div style="font-size:24px;font-weight:700;color:#b45309;margin:4px 0;">R1 990</div>
+                        <div style="font-size:12px;color:#888;margin-bottom:12px;">R166/mo — <strong>save 17%</strong></div>
+                        <div style="font-size:12px;color:#555;margin-bottom:12px;">✅ Everything in Pro<br>✅ 2 months free<br>✅ Best value</div>
+                        <button class="btn btn-sm" id="upgradeAnnualBtn" style="width:100%;background:#b45309;color:white;border:none;padding:8px 16px;border-radius:8px;font-weight:600;cursor:pointer;" onclick="startUpgrade('pro-annual')">Upgrade Annual</button>
+                    </div>
+                </div>
+                <div id="upgradeMessage" style="font-size:13px;margin-top:8px;display:none;"></div>
+            </div>
+            <div id="proStatusSection" style="display:none;">
+                <p style="font-size:14px;color:#059669;">✅ You're on the <strong id="proPlanName">Pro</strong> plan. Your page is live and fully active.</p>
+            </div>
         </div>
 
         <div class="card">
@@ -559,6 +587,29 @@ if (agentPlan === 'PRO' || agentPlan === 'PRO-ANNUAL') {
   var pn = document.getElementById('profilePlanNotice');
   if (pn) pn.style.display = 'block';
 }
+
+// Sync profile plan badge
+var profilePlanBadge = document.getElementById('profilePlanBadge');
+if (profilePlanBadge) {
+  profilePlanBadge.textContent = agentPlan;
+  profilePlanBadge.style.cssText = 'font-size:12px;font-weight:600;border-radius:6px;padding:2px 8px;display:inline-block;background:' + (agentPlan === 'PRO' || agentPlan === 'PRO-ANNUAL' ? '#d1fae5;color:#065f46' : '#e5e7eb;color:#374151') + ';';
+}
+
+// Show/hide upgrade vs pro status sections
+var isPro = agentPlan === 'PRO' || agentPlan === 'PRO-ANNUAL';
+var upgradeCard = document.getElementById('planUpgradeCard');
+var sidebarUpgradeBtn = document.getElementById('sidebarUpgradeBtn');
+if (isPro) {
+  document.getElementById('upgradeOptions').style.display = 'none';
+  document.getElementById('proStatusSection').style.display = 'block';
+  document.getElementById('proPlanName').textContent = agentPlan === 'PRO-ANNUAL' ? 'Pro Annual' : 'Pro';
+  if (sidebarUpgradeBtn) sidebarUpgradeBtn.style.display = 'none';
+  if (upgradeCard) upgradeCard.style.display = 'block';
+} else {
+  document.getElementById('upgradeOptions').style.display = 'flex';
+  document.getElementById('proStatusSection').style.display = 'none';
+  if (sidebarUpgradeBtn) sidebarUpgradeBtn.style.display = 'inline-block';
+}
 var slug = agent.slug || '';
 if (!slug && agent._id) {
   // Generate slug from name if missing
@@ -613,6 +664,46 @@ function doLogout() {
     localStorage.removeItem('token');
     localStorage.removeItem('agent');
     window.location.href = '/';
+}
+
+// PayFast Upgrade
+async function startUpgrade(plan) {
+    var msgEl = document.getElementById('upgradeMessage');
+    msgEl.style.display = 'block';
+    msgEl.innerHTML = '⏳ Redirecting to PayFast...';
+    msgEl.style.color = '#888';
+
+    try {
+        var resp = await fetch(API + '/api/payments/create-subscription', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + getToken() },
+            body: JSON.stringify({ plan: plan })
+        });
+        var data = await resp.json();
+
+        if (data.success && data.redirectUrl) {
+            // Build a form and auto-submit to PayFast
+            var form = document.createElement('form');
+            form.method = 'POST';
+            form.action = data.redirectUrl;
+            form.style.display = 'none';
+            for (var key in data.params) {
+                var input = document.createElement('input');
+                input.type = 'hidden';
+                input.name = key;
+                input.value = data.params[key];
+                form.appendChild(input);
+            }
+            document.body.appendChild(form);
+            form.submit();
+        } else {
+            msgEl.innerHTML = '❌ ' + (data.message || 'Failed to create payment');
+            msgEl.style.color = '#dc2626';
+        }
+    } catch (e) {
+        msgEl.innerHTML = '❌ Error: ' + e.message;
+        msgEl.style.color = '#dc2626';
+    }
 }
 
 // --- Load data ---

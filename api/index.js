@@ -78,6 +78,7 @@ const uploadRoutes = require('./src/routes/upload-images');
 const feedbackRoutes = require('./src/routes/feedback');
 const adminRoutes = require('./src/routes/admin');
 const contactRoutes = require('./src/routes/contact');
+const paymentRoutes = require('./src/routes/payments');
 
 const app = express();
 app.use(cors());
@@ -94,6 +95,16 @@ app.use('/api', scrapeRoutes);
 app.use('/api/feedback', feedbackRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/contact', contactRoutes);
+app.use('/api/payments', paymentRoutes);
+app.use('/api/payfast', paymentRoutes);
+
+// Payment redirect pages (clean URLs for PayFast redirect)
+app.get('/payfast/success', (req, res) => {
+  res.sendFile(path.join(__dirname, '..', 'public', 'payfast', 'success.html'));
+});
+app.get('/payfast/cancel', (req, res) => {
+  res.sendFile(path.join(__dirname, '..', 'public', 'payfast', 'cancel.html'));
+});
 
 // Serve static
 app.use(express.static(path.join(__dirname, '..', 'public')));
