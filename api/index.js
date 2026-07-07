@@ -626,4 +626,12 @@ app.get('/api/debug-inmem', async (req, res) => {
   res.json(data);
 });
 
+// Catch malformed JSON from bots (prevents crash on SyntaxError)
+app.use((err, req, res, next) => {
+  if (err instanceof SyntaxError && err.status === 400 && 'body' in err) {
+    return res.status(400).json({ error: 'Invalid JSON' });
+  }
+  next();
+});
+
 module.exports = app;
