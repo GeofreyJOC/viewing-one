@@ -148,6 +148,10 @@
         <p class="subtitle">Send us a message and we'll get back to you.</p>
         <div id="statusMsg" class="status-msg"></div>
         <form id="contactForm" onsubmit="return sendMessage(event)">
+          <!-- Honeypot field: invisible to humans, bots fill it -->
+          <div style="position:absolute;left:-9999px;opacity:0;" aria-hidden="true">
+            <input type="text" name="website" id="website" tabindex="-1" autocomplete="off">
+          </div>
           <label for="name">Your name</label>
           <input type="text" id="name" required placeholder="e.g. John Doe">
           <label for="email">Your email</label>
@@ -173,7 +177,8 @@
       var data = {
         name: document.getElementById('name').value.trim(),
         email: document.getElementById('email').value.trim(),
-        message: document.getElementById('message').value.trim()
+        message: document.getElementById('message').value.trim(),
+        website: (document.getElementById('website') ? document.getElementById('website').value : '')
       };
 
       fetch('/api/contact', {
