@@ -16,6 +16,50 @@ try {
 if (!global.__inMemoryAgents) global.__inMemoryAgents = [];
 const inMemoryAgents = global.__inMemoryAgents;
 
+// Login rate limiter — 5 attempts per IP per 15 min
+var loginAttempts = {};
+
+function checkLoginRateLimit(ip) {
+  var now = Date.now();
+  var windowMs = 15 * 60 * 1000; // 15 minutes
+  if (!loginAttempts[ip]) {
+    loginAttempts[ip] = { count: 0, windowStart: now, lockedUntil: 0 };
+  }
+  var entry = loginAttempts[ip];
+  // Reset if window expired
+  if (now - entry.windowStart > windowMs) {
+    entry.count = 0;
+    entry.windowStart = now;
+  }
+  // Check if still locked out
+  if (entry.lockedUntil > now) {
+    var minutesLeft = Math.ceil((entry.lockedUntil - now) / 60000);
+    return { allowed: false, message: 'Too many failed attempts. Try again in ' + minutesLeft + ' minute(s).' };
+  }
+  return { allowed: true };
+}
+
+function recordFailedAttempt(ip) {
+  var now = Date.now();
+  var windowMs = 15 * 60 * 1000;
+  if (!loginAttempts[ip]) {
+    loginAttempts[ip] = { count: 0, windowStart: now, lockedUntil: 0 };
+  }
+  var entry = loginAttempts[ip];
+  entry.count++;
+  if (entry.count >= 5) {
+    entry.lockedUntil = now + windowMs;
+  }
+}
+
+function recordSuccessfulLogin(ip) {
+  // Clear attempts on successful login
+  if (loginAttempts[ip]) {
+    loginAttempts[ip].count = 0;
+    loginAttempts[ip].lockedUntil = 0;
+  }
+}
+
 // POST /api/auth/register
 router.post('/register', async (req, res) => {
   try {
@@ -351,6 +395,13 @@ router.post('/reset-password', async (req, res) => {
 // POST /api/auth/login
 router.post('/login', async (req, res) => {
   try {
+    // Rate limit check
+    var clientIp = req.ip || req.connection.remoteAddress || req.headers['x-forwarded-for'] || 'unknown';
+    var rateCheck = checkLoginRateLimit(clientIp);
+    if (!rateCheck.allowed) {
+      return res.status(429).json({ success: false, message: rateCheck.message });
+    }
+
     const { email, password } = req.body;
     if (!email || !password) {
       return res.status(400).json({ success: false, message: 'Email and password required' });
@@ -490,12 +541,14 @@ router.post('/login', async (req, res) => {
     }
 
     if (!agent) {
+      recordFailedAttempt(clientIp);
       return res.status(401).json({ success: false, message: 'Invalid email or password' });
     }
 
     var passwordHash = agent.password || '';
     if (!passwordHash || typeof passwordHash !== 'string' || passwordHash.length < 20) {
       console.error('Login: Invalid password hash for', normalizedEmail);
+      recordFailedAttempt(clientIp);
       return res.status(401).json({ success: false, message: 'Invalid email or password' });
     }
     var isPasswordValid = false;
@@ -505,9 +558,11 @@ router.post('/login', async (req, res) => {
       console.error('bcrypt compare error:', bcErr.message);
     }
     if (!isPasswordValid) {
+      recordFailedAttempt(clientIp);
       return res.status(401).json({ success: false, message: 'Invalid email or password' });
     }
 
+    recordSuccessfulLogin(clientIp);
     const token = jwt.sign({ id: agent._id.toString(), email: normalizedEmail }, JWT_SECRET, { expiresIn: '30d' });
 
     res.json({
@@ -794,6 +849,13 @@ router.delete('/:email', async (req, res) => {
 // POST /api/auth/admin-login
 router.post('/admin-login', async (req, res) => {
   try {
+    // Rate limit check
+    var clientIp = req.ip || req.connection.remoteAddress || req.headers['x-forwarded-for'] || 'unknown';
+    var rateCheck = checkLoginRateLimit(clientIp);
+    if (!rateCheck.allowed) {
+      return res.status(429).json({ success: false, message: rateCheck.message });
+    }
+
     const { email, password } = req.body;
     if (!email || !password) {
       return res.status(400).json({ success: false, message: 'Email and password required' });
@@ -804,13 +866,16 @@ router.post('/admin-login', async (req, res) => {
     const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'admin123';
 
     if (normalizedEmail !== ADMIN_EMAIL) {
+      recordFailedAttempt(clientIp);
       return res.status(401).json({ success: false, message: 'Invalid admin credentials' });
     }
 
     if (password !== ADMIN_PASSWORD) {
+      recordFailedAttempt(clientIp);
       return res.status(401).json({ success: false, message: 'Invalid admin credentials' });
     }
 
+    recordSuccessfulLogin(clientIp);
     const token = jwt.sign({ role: 'admin', email: normalizedEmail }, JWT_SECRET, { expiresIn: '24h' });
 
     res.json({
