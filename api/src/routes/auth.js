@@ -43,12 +43,44 @@ function recordFailedAttempt(ip) {
   var now = Date.now();
   var windowMs = 15 * 60 * 1000;
   if (!loginAttempts[ip]) {
-    loginAttempts[ip] = { count: 0, windowStart: now, lockedUntil: 0 };
+    loginAttempts[ip] = { count: 0, windowStart: now, lockedUntil: 0, alerted: false };
   }
   var entry = loginAttempts[ip];
   entry.count++;
-  if (entry.count >= 5) {
+  if (entry.count >= 5 && !entry.alerted) {
     entry.lockedUntil = now + windowMs;
+    entry.alerted = true;
+    // Send alert email asynchronously (don't block)
+    sendLockoutAlert(ip, entry.count);
+  }
+}
+
+// Send email alert when an IP gets locked out
+function sendLockoutAlert(ip, attempts) {
+  try {
+    var nodemailer = require('nodemailer');
+    var transporter = nodemailer.createTransport({
+      host: process.env.SMTP_HOST || 'mail.privateemail.com',
+      port: parseInt(process.env.SMTP_PORT || '587'),
+      secure: false,
+      auth: {
+        user: process.env.SMTP_USER || 'listings@viewing.one',
+        pass: process.env.SMTP_PASS || ''
+      },
+      tls: { rejectUnauthorized: false }
+    });
+    transporter.sendMail({
+      from: process.env.SMTP_USER || 'listings@viewing.one',
+      to: 'geofryjetson@proton.me',
+      subject: '[Viewing.One] Login lockout alert — ' + ip,
+      text: 'IP ' + ip + ' has been locked out after ' + attempts + ' failed login attempts.\n\nLocked for 15 minutes from ' + new Date().toISOString() + '.\n\nTime: ' + new Date().toLocaleString()
+    }).then(function(info) {
+      console.log('Lockout alert sent for', ip, ':', info.messageId);
+    }).catch(function(e) {
+      console.error('Failed to send lockout alert:', e.message);
+    });
+  } catch(e) {
+    console.error('Lockout alert error:', e.message);
   }
 }
 
