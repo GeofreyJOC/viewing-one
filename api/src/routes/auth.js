@@ -678,7 +678,7 @@ router.put('/me/logo', async (req, res) => {
     if (!token) return res.status(401).json({ success: false, message: 'No token' });
     const decoded = jwt.verify(token, JWT_SECRET);
     const { logo } = req.body;
-    if (!logo) return res.status(400).json({ success: false, message: 'Image data required' });
+    if (logo === undefined || logo === null) return res.status(400).json({ success: false, message: 'Image data required' });
     
     let updated = false;
     const idx = inMemoryAgents.findIndex(a => a._id.toString() === decoded.id);
