@@ -334,7 +334,7 @@
                 <input type="text" id="profilePageUrl" readonly onclick="this.select()" style="cursor:pointer;">
                 <button class="btn btn-primary btn-sm" onclick="copyProfileUrl()">📋 Copy</button>
             </div>
-            <div style="margin-top:16px;padding-top:16px;border-top:1px solid #eee;display:flex;align-items:flex-start;gap:16px;">
+            <div id="qrSection" style="margin-top:16px;padding-top:16px;border-top:1px solid #eee;display:flex;align-items:flex-start;gap:16px;">
                 <div style="flex-shrink:0;">
                     <canvas id="qrCodeCanvas" width="300" height="360" style="width:150px;height:180px;border-radius:8px;border:1px solid #ddd;display:none;"></canvas>
                 </div>
@@ -1707,7 +1707,7 @@ var tourSteps = [
     placement: 'bottom'
   },
   {
-    target: '#qrCodeCanvas',
+    target: '#qrSection',
     title: '📱 QR Code for Listings',
     text: 'Want to make it even easier for buyers to book? <strong>Download this QR code and add it to your listing photos</strong> — buyers scan it with their phone to book a viewing instantly.',
     placement: 'bottom'
@@ -1760,6 +1760,19 @@ function showTourStep(index) {
   
   // Find target element
   var el = document.querySelector(step.target);
+  if (!el) return endTour();
+  
+  // Auto-switch to correct tab if needed
+  var tabMap = {'#qrSection':'profile','#tour-slots':'slots','#tour-add':'add','#tour-bookings':'bookings','#tour-feedback':'feedback'};
+  var tabId = tabMap[step.target];
+  if (tabId && typeof switchTab === 'function') {
+    var tabContent = document.getElementById('tab-' + tabId);
+    if (tabContent && !tabContent.classList.contains('active')) {
+      switchTab(tabId);
+    }
+  }
+  // Re-query after potential tab switch
+  el = document.querySelector(step.target);
   if (!el) return endTour();
   
   // Get element position
