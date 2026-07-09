@@ -231,6 +231,7 @@
                 <div>
                     <label for="profilePicUpload" class="btn btn-outline btn-sm" style="cursor:pointer;">📷 Upload Photo</label>
                     <input type="file" id="profilePicUpload" accept="image/*" style="display:none;" onchange="uploadProfilePic(event)">
+                    <button id="deletePhotoBtn" class="btn btn-sm" style="background:transparent;color:#dc2626;border:1px solid #dc2626;padding:4px 10px;border-radius:6px;cursor:pointer;font-size:12px;display:none;margin-left:6px;" onclick="deleteProfilePic()">🗑️ Delete</button>
                     <p style="font-size:12px;color:#999;margin-top:4px;">JPG, PNG. Max 2MB.</p>
                 </div>
             </div>
@@ -1009,6 +1010,11 @@ async function loadProfile() {
     // Avatar
     if (a.logo) {
         document.getElementById('profileAvatarPreview').innerHTML = '<img src="' + a.logo + '" style="width:80px;height:80px;border-radius:50%;object-fit:cover;">';
+        var delBtn = document.getElementById('deletePhotoBtn');
+        if (delBtn) delBtn.style.display = 'inline-block';
+    } else {
+        var delBtn = document.getElementById('deletePhotoBtn');
+        if (delBtn) delBtn.style.display = 'none';
     }
 }
 
@@ -1060,6 +1066,7 @@ function uploadProfilePic(event) {
             if (data.success) {
                 msg.innerHTML = '✅ Photo uploaded!';
                 document.getElementById('profileAvatarPreview').innerHTML = '<img src="' + base64 + '" style="width:80px;height:80px;border-radius:50%;object-fit:cover;">';
+                document.getElementById('deletePhotoBtn').style.display = 'inline-block';
                 setTimeout(function(){ msg.innerHTML = ''; }, 3000);
             } else {
                 msg.innerHTML = '❌ ' + (data.message || 'Upload failed');
@@ -1069,6 +1076,30 @@ function uploadProfilePic(event) {
         }
     };
     reader.readAsDataURL(file);
+}
+
+async function deleteProfilePic() {
+    if (!confirm('Remove your profile photo?')) return;
+    var msg = document.getElementById('profileSaveMsg');
+    msg.innerHTML = '⏳ Removing...';
+    try {
+        var resp = await fetch(API + '/api/auth/me/logo', {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + getToken() },
+            body: JSON.stringify({ logo: '' })
+        });
+        var data = await resp.json();
+        if (data.success) {
+            msg.innerHTML = '✅ Photo removed';
+            document.getElementById('profileAvatarPreview').innerHTML = '👤';
+            document.getElementById('deletePhotoBtn').style.display = 'none';
+            setTimeout(function(){ msg.innerHTML = ''; }, 3000);
+        } else {
+            msg.innerHTML = '❌ ' + (data.message || 'Failed to remove');
+        }
+    } catch(err) {
+        msg.innerHTML = '❌ Error: ' + err.message;
+    }
 }
 
 function changePassword() {
