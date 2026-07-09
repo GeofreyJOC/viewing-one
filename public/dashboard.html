@@ -334,9 +334,9 @@
                 <input type="text" id="profilePageUrl" readonly onclick="this.select()" style="cursor:pointer;">
                 <button class="btn btn-primary btn-sm" onclick="copyProfileUrl()">📋 Copy</button>
             </div>
-            <div style="margin-top:16px;padding-top:16px;border-top:1px solid #eee;display:flex;align-items:center;gap:16px;">
+            <div style="margin-top:16px;padding-top:16px;border-top:1px solid #eee;display:flex;align-items:flex-start;gap:16px;">
                 <div style="flex-shrink:0;">
-                    <img id="qrCodeImage" src="" alt="QR Code" style="width:120px;height:120px;border-radius:8px;border:1px solid #ddd;background:#f9f9f9;display:none;" crossorigin="anonymous">
+                    <canvas id="qrCodeCanvas" width="300" height="360" style="width:150px;height:180px;border-radius:8px;border:1px solid #ddd;display:none;"></canvas>
                 </div>
                 <div>
                     <p style="font-size:14px;font-weight:600;margin-bottom:4px;">📱 QR Code</p>
@@ -641,14 +641,48 @@ if (ppu) ppu.value = 'https://viewing.one/' + slug;
 var ps = document.getElementById('profileSlug');
 if (ps) ps.textContent = slug;
 
-// QR Code init
-var qrImg = document.getElementById('qrCodeImage');
+// QR Code init - composite QR + text onto canvas
+var qrCanvas = document.getElementById('qrCodeCanvas');
 var qrBtn = document.getElementById('qrDownloadBtn');
-if (qrImg && slug) {
+if (qrCanvas && slug) {
   var pageUrl = 'https://viewing.one/' + slug;
-  qrImg.src = 'https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=' + encodeURIComponent(pageUrl);
-  qrImg.style.display = 'block';
-  if (qrBtn) qrBtn.style.display = 'inline-block';
+  var qrSrc = 'https://api.qrserver.com/v1/create-qr-code/?size=280x280&data=' + encodeURIComponent(pageUrl);
+  var img = new Image();
+  img.crossOrigin = 'anonymous';
+  img.onload = function() {
+    var ctx = qrCanvas.getContext('2d');
+    var cw = 300, ch = 360;
+    qrCanvas.width = cw;
+    qrCanvas.height = ch;
+    // White background
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(0, 0, cw, ch);
+    // Draw QR code centered, slightly above middle
+    var qrSize = 280;
+    var qrX = (cw - qrSize) / 2;
+    var qrY = 10;
+    ctx.drawImage(img, qrX, qrY, qrSize, qrSize);
+    // Draw text below
+    ctx.fillStyle = '#111827';
+    ctx.font = 'bold 16px Arial, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('Scan QR code to book', cw / 2, qrY + qrSize + 26);
+    ctx.font = 'bold 16px Arial, sans-serif';
+    ctx.fillText('a viewing', cw / 2, qrY + qrSize + 48);
+    // Show it
+    qrCanvas.style.display = 'block';
+    if (qrBtn) qrBtn.style.display = 'inline-block';
+  };
+  img.onerror = function() {
+    // Fallback: just show the QR server URL directly
+    var fallbackImg = document.createElement('img');
+    fallbackImg.src = qrSrc;
+    fallbackImg.style.width = '120px';
+    fallbackImg.style.height = '120px';
+    qrCanvas.parentNode.insertBefore(fallbackImg, qrCanvas);
+    qrCanvas.style.display = 'none';
+  };
+  img.src = qrSrc;
 }
 
 function showToast(msg, type) {
@@ -1141,31 +1175,13 @@ function copyProfileUrl() {
 
 // Download QR code as PNG
 function downloadQRCode() {
-    var qrImg = document.getElementById('qrCodeImage');
-    if (!qrImg || !qrImg.src) return;
-    // Create a canvas, draw the QR image on it, then download as PNG
-    var canvas = document.createElement('canvas');
-    canvas.width = 300;
-    canvas.height = 300;
-    var ctx = canvas.getContext('2d');
-    ctx.fillStyle = '#ffffff';
-    ctx.fillRect(0, 0, 300, 300);
-    var img = new Image();
-    img.crossOrigin = 'anonymous';
-    img.onload = function() {
-        ctx.drawImage(img, 0, 0, 300, 300);
-        var link = document.createElement('a');
-        link.download = 'viewing-one-qr.png';
-        link.href = canvas.toDataURL('image/png');
-        link.click();
-        showToast('QR code downloaded!');
-    };
-    img.onerror = function() {
-        // Fallback: open QR in new tab to save manually
-        window.open(qrImg.src, '_blank');
-        showToast('Opening QR in new tab — right-click to save');
-    };
-    img.src = qrImg.src;
+    var canvas = document.getElementById('qrCodeCanvas');
+    if (!canvas) return;
+    var link = document.createElement('a');
+    link.download = 'viewing-one-qr.png';
+    link.href = canvas.toDataURL('image/png');
+    link.click();
+    showToast('QR code downloaded!');
 }
 
 // Password strength indicator
@@ -1691,7 +1707,7 @@ var tourSteps = [
     placement: 'bottom'
   },
   {
-    target: '#qrCodeImage',
+    target: '#qrCodeCanvas',
     title: '📱 QR Code for Listings',
     text: 'Want to make it even easier for buyers to book? <strong>Download this QR code and add it to your listing photos</strong> — buyers scan it with their phone to book a viewing instantly.',
     placement: 'bottom'
