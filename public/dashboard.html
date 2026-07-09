@@ -339,7 +339,8 @@
                 </div>
                 <div>
                     <p style="font-size:14px;font-weight:600;margin-bottom:4px;">📱 QR Code</p>
-                    <p style="font-size:12px;color:#888;margin-bottom:8px;">Upload this image to your property listings on any portal. Buyers scan it to book viewings directly.</p>
+                    <p style="font-size:12px;color:#888;margin-bottom:8px;">Download this QR code and upload it alongside your listing photos on any property portal. Buyers scan it to book a viewing instantly.</p>
+                    <p style="font-size:13px;font-weight:600;color:#4f46e5;margin-bottom:8px;">To book a viewing, scan the QR code 📸</p>
                     <button id="qrDownloadBtn" class="btn btn-sm" style="background:#4f46e5;color:white;border:none;padding:6px 14px;border-radius:8px;font-weight:600;cursor:pointer;display:none;" onclick="downloadQRCode()">⬇️ Download QR Code</button>
                 </div>
             </div>
@@ -1656,6 +1657,12 @@ var tourSteps = [
     target: '#agentPageLink',
     title: '🔗 Share Your Agent Link',
     text: 'This is your public agent page URL. <strong>Add this link to all your property listings on any portal</strong> — that way, anyone viewing your listing can click through and book a viewing instantly.',
+    placement: 'bottom'
+  },
+  {
+    target: '#qrCodeImage',
+    title: '📱 QR Code for Listings',
+    text: 'Property portals block external links in descriptions. <strong>Download this QR code and upload it as one of your listing photos</strong> — buyers scan it to book a viewing instantly. No link needed.',
     placement: 'bottom'
   },
   {
