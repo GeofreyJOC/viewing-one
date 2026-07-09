@@ -1775,7 +1775,10 @@ function showTourStep(index) {
   el = document.querySelector(step.target);
   if (!el) return endTour();
   
-  // Get element position
+  // Scroll element into view
+  el.scrollIntoView({ block: 'center' });
+  
+  // Get element position (wait a tick for scroll to settle)
   var rect = el.getBoundingClientRect();
   
   // Build progress dots
