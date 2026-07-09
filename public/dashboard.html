@@ -325,12 +325,22 @@
             </div>
         </div>
 
-        <div class="card">
+        <div class="card" style="overflow:visible;">
             <h3>🔗 Your Agent Page</h3>
             <p style="font-size:14px;color:#888;margin-bottom:12px;">Share this link with potential buyers:</p>
             <div class="url-input-group">
                 <input type="text" id="profilePageUrl" readonly onclick="this.select()" style="cursor:pointer;">
                 <button class="btn btn-primary btn-sm" onclick="copyProfileUrl()">📋 Copy</button>
+            </div>
+            <div style="margin-top:16px;padding-top:16px;border-top:1px solid #eee;display:flex;align-items:center;gap:16px;">
+                <div style="flex-shrink:0;">
+                    <img id="qrCodeImage" src="" alt="QR Code" style="width:120px;height:120px;border-radius:8px;border:1px solid #ddd;background:#f9f9f9;display:none;" crossorigin="anonymous">
+                </div>
+                <div>
+                    <p style="font-size:14px;font-weight:600;margin-bottom:4px;">📱 QR Code</p>
+                    <p style="font-size:12px;color:#888;margin-bottom:8px;">Upload this image to your property listings on any portal. Buyers scan it to book viewings directly.</p>
+                    <button id="qrDownloadBtn" class="btn btn-sm" style="background:#4f46e5;color:white;border:none;padding:6px 14px;border-radius:8px;font-weight:600;cursor:pointer;display:none;" onclick="downloadQRCode()">⬇️ Download QR Code</button>
+                </div>
             </div>
         </div>
     </div>
@@ -627,6 +637,16 @@ var ppu = document.getElementById('profilePageUrl');
 if (ppu) ppu.value = 'https://viewing.one/' + slug;
 var ps = document.getElementById('profileSlug');
 if (ps) ps.textContent = slug;
+
+// QR Code init
+var qrImg = document.getElementById('qrCodeImage');
+var qrBtn = document.getElementById('qrDownloadBtn');
+if (qrImg && slug) {
+  var pageUrl = 'https://viewing.one/' + slug;
+  qrImg.src = 'https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=' + encodeURIComponent(pageUrl);
+  qrImg.style.display = 'block';
+  if (qrBtn) qrBtn.style.display = 'inline-block';
+}
 
 function showToast(msg, type) {
     var t = document.getElementById('toast');
@@ -1084,6 +1104,35 @@ function copyProfileUrl() {
     navigator.clipboard.writeText(input.value).then(function(){
         showToast('URL copied!');
     }).catch(function(){});
+}
+
+// Download QR code as PNG
+function downloadQRCode() {
+    var qrImg = document.getElementById('qrCodeImage');
+    if (!qrImg || !qrImg.src) return;
+    // Create a canvas, draw the QR image on it, then download as PNG
+    var canvas = document.createElement('canvas');
+    canvas.width = 300;
+    canvas.height = 300;
+    var ctx = canvas.getContext('2d');
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(0, 0, 300, 300);
+    var img = new Image();
+    img.crossOrigin = 'anonymous';
+    img.onload = function() {
+        ctx.drawImage(img, 0, 0, 300, 300);
+        var link = document.createElement('a');
+        link.download = 'viewing-one-qr.png';
+        link.href = canvas.toDataURL('image/png');
+        link.click();
+        showToast('QR code downloaded!');
+    };
+    img.onerror = function() {
+        // Fallback: open QR in new tab to save manually
+        window.open(qrImg.src, '_blank');
+        showToast('Opening QR in new tab — right-click to save');
+    };
+    img.src = qrImg.src;
 }
 
 // Password strength indicator
