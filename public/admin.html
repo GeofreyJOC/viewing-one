@@ -102,6 +102,23 @@
 
         .empty-state { text-align: center; padding: 40px 20px; color: #64748b; font-size: 14px; }
 
+        /* Expandable agent properties */
+        .agent-expand { cursor: pointer; font-size: 12px; color: #64748b; transition: transform 0.2s; user-select: none; }
+        .agent-expand:hover { color: #818cf8; }
+        .agent-expand.open { transform: rotate(90deg); }
+        .agent-props { display: none; background: rgba(15,23,42,0.5); border-radius: 6px; margin: 4px 14px 8px; padding: 8px; }
+        .agent-props.open { display: block; }
+        .agent-prop-row {
+            display: grid; grid-template-columns: 2fr 1fr 80px;
+            gap: 6px; padding: 6px 10px; font-size: 12px; align-items: center;
+            border-bottom: 1px solid #1a1d27;
+        }
+        .agent-prop-row:last-child { border-bottom: none; }
+        .agent-prop-row .prop-title { font-weight: 500; color: #e2e8f0; }
+        .agent-prop-row .prop-price { color: #34d399; }
+        .agent-prop-row .prop-status { text-align: center; }
+        .agent-prop-empty { padding: 12px; text-align: center; color: #64748b; font-size: 12px; }
+
         /* Modal */
         .modal-overlay {
             position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 200;
@@ -295,6 +312,47 @@ function loadAllData() {
     loadProperties();
 }
 
+// Cache for agent properties expand
+window.__allProperties = [];
+
+function toggleAgentProps(agentId, agentEmail, expandEl) {
+    var propsDiv = document.getElementById('props-' + agentId);
+    if (!propsDiv) return;
+    
+    var isOpen = propsDiv.classList.contains('open');
+    if (isOpen) {
+        propsDiv.classList.remove('open');
+        if (expandEl) expandEl.classList.remove('open');
+        return;
+    }
+    
+    // Expand
+    if (expandEl) expandEl.classList.add('open');
+    
+    // Find matching properties
+    var props = window.__allProperties.filter(function(p) {
+        return p.agentEmail === agentEmail || p.createdBy === agentId || p.createdBy === agentEmail;
+    });
+    
+    if (props.length === 0) {
+        propsDiv.innerHTML = '<div class="agent-prop-empty">No properties found for this agent</div>';
+        propsDiv.classList.add('open');
+        return;
+    }
+    
+    propsDiv.innerHTML = props.map(function(p) {
+        var price = p.price || p.displayPrice || '—';
+        var isSuspended = p.isActive === false || p.status === 'suspended';
+        return '<div class="agent-prop-row">' +
+            '<span class="prop-title">' + escapeHtml((p.title || 'Untitled').substring(0, 40)) + '</span>' +
+            '<span class="prop-price">' + escapeHtml(String(price)) + '</span>' +
+            '<span class="prop-status"><span class="status-badge ' + (isSuspended ? 'status-suspended' : 'status-active') + '">' + (isSuspended ? '✕' : '✓') + '</span></span>' +
+            '</div>';
+    }).join('');
+    
+    propsDiv.classList.add('open');
+}
+
 function loadStats() {
     fetch(API + '/api/admin/stats', { headers: { 'Authorization': 'Bearer ' + getToken() } })
     .then(function(r) { return r.json(); })
@@ -325,17 +383,18 @@ function loadAgents() {
                 var props = a.propertyCount || 0;
                 return (
                     '<div class="agent-row">' +
-                    '<div class="name">' + escapeHtml(a.name || 'Unnamed') + '</div>' +
+                    '<div class="name"><span class="agent-expand" id="expand-' + escapeHtml(a._id) + '" onclick="toggleAgentProps(\'' + escapeHtml(a._id) + '\',\'' + escapeHtml(a.email || '') + '\',this)">▶</span> ' + escapeHtml(a.name || 'Unnamed') + '</div>' +
                     '<div style="font-family:monospace;font-size:12px;"><a href="' + API + '/' + escapeHtml(a.slug || '') + '" target="_blank" style="color:#818cf8;text-decoration:none;">' + escapeHtml(a.slug || '?') + ' ↗</a></div>' +
                     '<div><span class="plan ' + planClass + '">' + (a.plan || 'demo').toUpperCase() + '</span></div>' +
                     '<div><span class="status-badge ' + statusClass + '">' + statusText + '</span></div>' +
-                    '<div style="text-align:center;">' + props + '</div>' +
+                    '<div style="text-align:center;cursor:pointer;" onclick="toggleAgentProps(\'' + escapeHtml(a._id) + '\',\'' + escapeHtml(a.email || '') + '\',document.getElementById(\'expand-' + escapeHtml(a._id) + '\'))">' + props + ' ▶</div>' +
                     '<div class="actions" style="display:flex;gap:2px;">' +
                     '<button class="btn-sm-primary" style="flex:1;padding:3px 5px;font-size:11px;white-space:nowrap;" onclick="viewAgent(\'' + escapeHtml(a.email || a._id) + '\')">View</button>' +
                     '<button class="btn-warn" style="flex:1;padding:3px 5px;font-size:11px;white-space:nowrap;" onclick="resetAgentPw(\'' + escapeHtml(a.email || a._id) + '\', \'' + escapeHtml(a.name || 'Agent') + '\')">PW</button>' +
                     '<button class="' + (a.isActive !== false ? 'btn-danger' : 'btn-sm-primary') + '" style="flex:1;padding:3px 5px;font-size:11px;white-space:nowrap;" onclick="toggleAgentStatus(\'' + escapeHtml(a.email || a._id) + '\', ' + (a.isActive !== false) + ')">' + (a.isActive !== false ? 'Suspend' : 'Activate') + '</button>' +
                     '</div>' +
-                    '</div>'
+                    '</div>' +
+                    '<div class="agent-props" id="props-' + escapeHtml(a._id) + '"></div>'
                 );
             }).join('');
         } else {
@@ -350,6 +409,7 @@ function loadProperties() {
     fetch(API + '/api/admin/properties', { headers: { 'Authorization': 'Bearer ' + getToken() } })
     .then(function(r) { return r.json(); })
     .then(function(data) {
+        window.__allProperties = data.properties || [];
         var list = document.getElementById('propertyList');
         var countLabel = document.getElementById('propCountLabel');
         if (data.success && data.properties.length > 0) {
