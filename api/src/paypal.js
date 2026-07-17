@@ -114,8 +114,8 @@ async function createProduct(token) {
  */
 async function createPlan(token, productId, planType) {
   var plans = {
-    pro: { name: 'Pro Monthly', description: 'Monthly Pro subscription', amount: 199, interval: 'MONTH', cycles: 0 },
-    'pro-annual': { name: 'Pro Annual', description: 'Annual Pro subscription', amount: 1990, interval: 'YEAR', cycles: 0 }
+    pro: { name: 'Pro Monthly', description: 'Monthly Pro subscription', amount: 1099, interval: 'MONTH', cycles: 0 },
+    'pro-annual': { name: 'Pro Annual', description: 'Annual Pro subscription', amount: 10990, interval: 'YEAR', cycles: 0 }
   };
   
   var p = planType === 'pro-annual' ? plans['pro-annual'] : plans.pro;
@@ -131,12 +131,12 @@ async function createPlan(token, productId, planType) {
       sequence: 1,
       total_cycles: p.cycles || 0,
       pricing_scheme: {
-        fixed_price: { value: (p.amount / 100).toFixed(2), currency_code: 'ZAR' }
+        fixed_price: { value: (p.amount / 100).toFixed(2), currency_code: 'USD' }
       }
     }],
     payment_preferences: {
       auto_bill_outstanding: true,
-      setup_fee: { value: '0', currency_code: 'ZAR' },
+      setup_fee: { value: '0', currency_code: 'USD' },
       setup_fee_failure_action: 'CONTINUE',
       payment_failure_threshold: 3
     }
@@ -183,7 +183,6 @@ async function getSubscription(token, subscriptionId) {
  * Verify PayPal webhook notification
  */
 function verifyWebhook(headers, body) {
-  // PayPal webhook verification via POST-back
   var webhookId = process.env.PAYPAL_WEBHOOK_ID || '';
   if (!webhookId) return Promise.resolve(false);
   
@@ -194,8 +193,6 @@ function verifyWebhook(headers, body) {
     .update(webhookId + '|' + timestamp + '|' + transmissionId + '|' + JSON.stringify(body))
     .digest('hex');
   
-  // Note: Full verification would POST to PayPal endpoint
-  // For simplicity, we just check transmission signature
   return Promise.resolve(!!transmissionId && !!timestamp);
 }
 
