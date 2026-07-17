@@ -10,8 +10,8 @@ router.get('/config', function(req, res) {
     clientId: paypal.getClientId(),
     sandbox: paypal.isSandbox(),
     plans: {
-      pro: { id: process.env.PAYPAL_PRO_PLAN_ID || '', amount: 199, name: 'Pro Monthly' },
-      'pro-annual': { id: process.env.PAYPAL_PRO_ANNUAL_PLAN_ID || '', amount: 1990, name: 'Pro Annual' }
+      pro: { id: process.env.PAYPAL_PRO_PLAN_ID || '', amount: 1099, name: 'Pro Monthly' },
+      'pro-annual': { id: process.env.PAYPAL_PRO_ANNUAL_PLAN_ID || '', amount: 10990, name: 'Pro Annual' }
     }
   });
 });
