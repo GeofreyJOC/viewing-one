@@ -727,33 +727,41 @@ function doLogout() {
 async function startUpgrade(plan) {
     var msgEl = document.getElementById('upgradeMessage');
     msgEl.style.display = 'block';
-    msgEl.innerHTML = '⏳ Redirecting to PayFast...';
+    msgEl.innerHTML = '⏳ Setting up PayPal subscription...';
     msgEl.style.color = '#888';
 
     try {
-        var resp = await fetch(API + '/api/payments/create-subscription', {
+        // Get PayPal config first
+        var configResp = await fetch(API + '/api/paypal/config');
+        var config = await configResp.json();
+        if (!config.success || !config.plans || !config.plans[plan] || !config.plans[plan].id) {
+            msgEl.innerHTML = '❌ PayPal plans not configured yet. Please contact support.';
+            msgEl.style.color = '#dc2626';
+            return;
+        }
+        
+        var planId = config.plans[plan].id;
+        
+        var resp = await fetch(API + '/api/paypal/create-subscription', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + getToken() },
-            body: JSON.stringify({ plan: plan })
+            body: JSON.stringify({ planId: planId, planType: plan })
         });
         var data = await resp.json();
 
-        if (data.success && data.redirectUrl) {
-            // Build a form and auto-submit to PayFast
-            var form = document.createElement('form');
-            form.method = 'POST';
-            form.action = data.redirectUrl;
-            form.style.display = 'none';
-            for (var key in data.params) {
-                var input = document.createElement('input');
-                input.type = 'hidden';
-                input.name = key;
-                input.value = data.params[key];
-                form.appendChild(input);
-            }
-            document.body.appendChild(form);
-            form.submit();
+        if (data.success && data.approvalUrl) {
+            msgEl.innerHTML = '⏳ Redirecting to PayPal...';
+            // Redirect user to PayPal to approve the subscription
+            window.location.href = data.approvalUrl;
         } else {
+            msgEl.innerHTML = '❌ ' + (data.message || 'Failed to create subscription');
+            msgEl.style.color = '#dc2626';
+        }
+    } catch (e) {
+        msgEl.innerHTML = '❌ Error: ' + e.message;
+        msgEl.style.color = '#dc2626';
+    }
+}
             msgEl.innerHTML = '❌ ' + (data.message || 'Failed to create payment');
             msgEl.style.color = '#dc2626';
         }

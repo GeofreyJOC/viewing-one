@@ -98,12 +98,24 @@ app.use('/api/contact', contactRoutes);
 app.use('/api/payments', paymentRoutes);
 app.use('/api/payfast', paymentRoutes);
 
+// PayPal payment routes
+const paypalRoutes = require('./src/routes/payments-paypal');
+app.use('/api/paypal', paypalRoutes);
+
 // Payment redirect pages (clean URLs for PayFast redirect)
 app.get('/payfast/success', (req, res) => {
   res.sendFile(path.join(__dirname, '..', 'public', 'payfast', 'success.html'));
 });
 app.get('/payfast/cancel', (req, res) => {
   res.sendFile(path.join(__dirname, '..', 'public', 'payfast', 'cancel.html'));
+});
+
+// PayPal redirect pages
+app.get('/paypal/success', (req, res) => {
+  res.sendFile(path.join(__dirname, '..', 'public', 'paypal', 'success.html'));
+});
+app.get('/paypal/cancel', (req, res) => {
+  res.sendFile(path.join(__dirname, '..', 'public', 'paypal', 'cancel.html'));
 });
 
 // Serve static
