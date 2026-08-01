@@ -343,6 +343,16 @@ function showMsg(type, text) {
     el.style.display = 'flex';
 }
 
+// Show a notice if we were redirected here because the session expired
+(function() {
+  try {
+    var urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get('expired') === '1') {
+      showMsg('error', 'Your session expired - please log in again.');
+    }
+  } catch(e) {}
+})();
+
 async function doLogin() {
     var email = document.getElementById('email').value.trim();
     var password = document.getElementById('password').value;

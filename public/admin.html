@@ -236,6 +236,37 @@
 <script>
 var API = '';
 
+// Global auth guard: if any API call returns 401 (expired/invalid token),
+// drop back to the login screen instead of silently showing empty data.
+(function() {
+  var origFetch = window.fetch;
+  window.fetch = function() {
+    return origFetch.apply(this, arguments).then(function(resp) {
+      if (resp.status === 401) {
+        var reqUrl = (arguments[0] && arguments[0].url) || arguments[0] || '';
+        if (String(reqUrl).indexOf('/api/auth/admin-login') === -1) {
+          setTimeout(handleSessionExpired, 0);
+        }
+      }
+      return resp;
+    });
+  };
+})();
+
+function handleSessionExpired() {
+  localStorage.removeItem('adminToken');
+  localStorage.removeItem('adminEmail');
+  var ls = document.getElementById('loginScreen');
+  var db = document.getElementById('dashboard');
+  if (ls) ls.classList.remove('hidden');
+  if (db) db.classList.remove('active');
+  var msg = document.getElementById('loginMsg');
+  if (msg) {
+    msg.textContent = 'Session expired - please log in again.';
+    msg.className = 'msg error';
+  }
+}
+
 // Check for existing admin token
 var adminToken = localStorage.getItem('adminToken');
 if (adminToken) {

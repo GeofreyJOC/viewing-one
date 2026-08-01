@@ -554,6 +554,25 @@
 <script>
 var API = '';
 
+// Global auth guard: if any API call returns 401 (expired/invalid token),
+// redirect to the login page instead of silently showing empty data.
+(function() {
+  var origFetch = window.fetch;
+  window.fetch = function() {
+    return origFetch.apply(this, arguments).then(function(resp) {
+      if (resp.status === 401) {
+        var reqUrl = (arguments[0] && arguments[0].url) || arguments[0] || '';
+        if (String(reqUrl).indexOf('/api/auth/login') === -1) {
+          localStorage.removeItem('token');
+          localStorage.removeItem('agent');
+          window.location.href = '/login.html?expired=1';
+        }
+      }
+      return resp;
+    });
+  };
+})();
+
 // Accept token from URL parameter (e.g. after setup redirects with ?token=xxx)
 (function() {
   var urlParams = new URLSearchParams(window.location.search);
