@@ -132,8 +132,25 @@ router.get('/agents', requireAdmin, async (req, res) => {
       return out;
     });
 
-    // Count properties per agent
+    // Count properties per agent — use MongoDB for accurate counts (in-memory cache only holds the last-loaded agent's data)
     var properties = global.__inMemoryProperties || [];
+    try {
+      if (typeof global.getMongoDbPromise === 'function') {
+        var db2 = await Promise.race([
+          global.getMongoDbPromise(),
+          new Promise(function(r) { setTimeout(function() { r('__TIMEOUT__'); }, 5000); })
+        ]);
+        if (db2 && db2 !== '__TIMEOUT__') {
+          var mongoProps = await db2.collection('properties').find({}).toArray();
+          if (mongoProps && mongoProps.length > 0) {
+            mongoProps.forEach(function(p) {
+              if (p._id && p._id.toString) p._id = p._id.toString();
+            });
+            properties = mongoProps;
+          }
+        }
+      }
+    } catch(e) {}
     safe.forEach(function(a) {
       var agentIdStr = typeof a._id === 'string' ? a._id : (a._id ? a._id.toString() : '');
       a.propertyCount = properties.filter(function(p) {
