@@ -781,14 +781,6 @@ async function startUpgrade(plan) {
         msgEl.style.color = '#dc2626';
     }
 }
-            msgEl.innerHTML = '❌ ' + (data.message || 'Failed to create payment');
-            msgEl.style.color = '#dc2626';
-        }
-    } catch (e) {
-        msgEl.innerHTML = '❌ Error: ' + e.message;
-        msgEl.style.color = '#dc2626';
-    }
-}
 
 // --- Load data ---
 async function loadData() {
