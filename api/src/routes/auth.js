@@ -141,6 +141,10 @@ router.post('/register', async (req, res) => {
       isActive: true, isVerified: false, createdAt: new Date()
     };
     inMemoryAgents.push(agent);
+    // Fire new-agent alert (Telegram + email + log) — fire-and-forget, never blocks registration
+    try {
+      require('../new-agent-alert').notifyNewAgent(agent);
+    } catch(e) { console.error('New-agent alert error:', e.message); }
     var agentId = agent._id;
     var agentName = agent.name;
     var agentCompany = agent.companyName;
