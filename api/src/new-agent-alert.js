@@ -123,7 +123,7 @@ function alertEmail(agent) {
 function notifyNewAgent(agent) {
   logAlert(agent);
   postTelegram(telegramText(agent));
-  alertEmail(agent);
+  // Email channel intentionally disabled (Hilmar 2026-08-12): Telegram-only alerts
 }
 
 module.exports = { notifyNewAgent };
