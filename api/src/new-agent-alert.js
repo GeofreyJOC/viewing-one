@@ -103,7 +103,7 @@ function alertEmail(agent) {
       '<tr><td><b>Time:</b></td><td>' + zaTime() + '</td></tr>' +
       '</table>';
     return t.sendMail({
-      from: '"Viewing.One Alerts" <admin@viewing.one>',
+      from: '"Viewing.One Alerts" <' + (process.env.SMTP_USER || 'listings@viewing.one') + '>',
       to: to,
       subject: '🚨 New agent joined viewing.one: ' + (agent.name || '?') + ' (' + (agent.companyName || '') + ')',
       html: html
