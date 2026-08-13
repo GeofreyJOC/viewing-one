@@ -186,6 +186,9 @@
 
     <!-- Listings Tab -->
     <div class="tab-content active" id="tab-listings">
+        <div style="display:flex;justify-content:flex-end;margin-bottom:12px;">
+            <button id="archiveToggleBtn" class="btn btn-sm btn-outline" onclick="toggleArchive()">🗄 Archived</button>
+        </div>
         <div class="prop-grid" id="propsContainer">
             <div class="empty-state" id="emptyProps">
                 <div class="icon">🏠</div>
@@ -576,6 +579,8 @@ var agent = JSON.parse(localStorage.getItem('agent') || '{}');
 
 function getToken() { return localStorage.getItem('token'); }
 var properties = [];
+var archivedProperties = [];
+var viewMode = 'active'; // 'active' | 'archived'
 var bookingSlots = [];
 var currentPropSlotId = null;
 
@@ -1250,6 +1255,8 @@ function renderProperties() {
         }
         html += '    <div class="actions">';
         html += '      <button class="btn btn-sm btn-outline" onclick="manageSlots(\'' + (p.id||p._id) + '\',\'' + (p.title||'').replace(/'/g,"\\'") + '\')">⏰ ' + slotsCount + ' slots</button>';
+        html += '      <button class="btn btn-sm" style="color:#15803d;border-color:#15803d;border:1px solid #15803d;background:transparent;" onclick="markStatus(\'' + (p.id||p._id) + '\',\'sold\')">Sold</button>';
+        html += '      <button class="btn btn-sm" style="color:#b45309;border-color:#b45309;border:1px solid #b45309;background:transparent;" onclick="markStatus(\'' + (p.id||p._id) + '\',\'rented\')">Rented</button>';
         html += '      <button class="btn btn-sm btn-danger" onclick="deleteProperty(\'' + (p.id||p._id) + '\')">✕ Delete</button>';
         html += '    </div>';
         html += '  </div>';
@@ -1342,6 +1349,86 @@ async function deleteProperty(propId) {
     } catch(e) {
         showToast('Error: ' + e.message, 'error');
     }
+}
+
+// --- Mark sold/rented (archive) ---
+async function markStatus(propId, status) {
+    var label = status === 'sold' ? 'sold' : status === 'rented' ? 'rented' : 'active (restore)';
+    if (!confirm('Mark this listing as ' + status + '? It will move to your archive.')) return;
+    try {
+        var res = await fetch(API + '/api/properties/' + propId + '/status', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + getToken() },
+            body: JSON.stringify({ status: status })
+        });
+        var data = await res.json();
+        if (data.success) {
+            showToast(status === 'active' ? 'Listing restored' : 'Marked as ' + status, 'success');
+            if (viewMode === 'archived') loadArchived(); else loadData();
+        } else {
+            showToast('Failed: ' + data.message, 'error');
+        }
+    } catch(e) {
+        showToast('Error: ' + e.message, 'error');
+    }
+}
+
+// --- Archive view ---
+function toggleArchive() {
+    viewMode = viewMode === 'active' ? 'archived' : 'active';
+    var btn = document.getElementById('archiveToggleBtn');
+    btn.textContent = viewMode === 'active' ? '🗄 Archived' : '📋 Active';
+    if (viewMode === 'archived') loadArchived(); else renderProperties();
+}
+
+async function loadArchived() {
+    try {
+        var resp = await fetch(API + '/api/properties?status=archived', {
+            headers: { 'Authorization': 'Bearer ' + getToken() }
+        });
+        var data = await resp.json();
+        archivedProperties = (data.success && data.properties) ? data.properties : [];
+        renderArchived();
+    } catch(e) {
+        console.error('Archived load error:', e);
+    }
+}
+
+function renderArchived() {
+    var container = document.getElementById('propsContainer');
+    if (archivedProperties.length === 0) {
+        container.innerHTML = '<div class="empty-state"><div class="icon">🗄</div><h3>Archive is empty</h3><p style="color:#888;font-size:14px;">Properties you mark as sold or rented land here.</p></div>';
+        return;
+    }
+    var html = '';
+    for (var i = 0; i < archivedProperties.length; i++) {
+        var p = archivedProperties[i];
+        var imgSrc = (p.images && p.images.length > 0) ? p.images[0] : null;
+        var outcome = (p.outcome === 'sold' || p.status === 'sold') ? 'SOLD' : 'RENTED';
+        var badgeColor = outcome === 'SOLD' ? '#15803d' : '#b45309';
+        var changed = p.statusChangedAt ? new Date(p.statusChangedAt).toLocaleDateString() : '';
+        html += '<div class="prop-card" style="opacity:0.85;">';
+        html += '  <div class="img-wrap">';
+        if (imgSrc && imgSrc.url) {
+            html += '<img src="' + imgSrc.url + '" alt="' + (p.title || 'Property') + '" loading="lazy">';
+        } else if (typeof imgSrc === 'string') {
+            html += '<img src="' + imgSrc + '" alt="' + (p.title || 'Property') + '" loading="lazy">';
+        } else {
+            html += '<span class="no-img">No image</span>';
+        }
+        html += '  </div>';
+        html += '  <div class="body">';
+        html += '    <div class="title">' + (p.title || 'Untitled') + '</div>';
+        html += '    <div class="price">' + (p.price || 'Price on request') + '</div>';
+        html += '    <div class="meta"><span style="font-weight:600;color:' + badgeColor + ';">● ' + outcome + '</span>' + (changed ? ' · ' + changed : '') + (p.statusPrice ? ' · ' + p.statusPrice : '') + '</div>';
+        html += '    <div class="actions">';
+        html += '      <button class="btn btn-sm btn-outline" onclick="markStatus(\'' + (p.id||p._id) + '\',\'active\')">↩ Restore</button>';
+        html += '      <button class="btn btn-sm btn-danger" onclick="deleteProperty(\'' + (p.id||p._id) + '\')">✕ Delete</button>';
+        html += '    </div>';
+        html += '  </div>';
+        html += '</div>';
+    }
+    container.innerHTML = html;
 }
 
 // --- Add listing ---

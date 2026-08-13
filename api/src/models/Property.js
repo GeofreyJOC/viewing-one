@@ -43,7 +43,10 @@ const propertySchema = new mongoose.Schema({
   viewingSlots: [viewingSlotSchema],
   
   // Status
-  status: { type: String, enum: ['draft', 'active', 'sold', 'removed'], default: 'draft' },
+  status: { type: String, enum: ['draft', 'active', 'sold', 'rented', 'removed'], default: 'draft' },
+  statusChangedAt: { type: Date },
+  statusPrice: { type: String }, // snapshot of price at time of sold/rented mark
+  outcome: { type: String },     // 'sold' | 'rented' — market data for viewing.one
   
   // Stats
   viewCount: { type: Number, default: 0 },
