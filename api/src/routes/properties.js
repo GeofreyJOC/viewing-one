@@ -214,11 +214,15 @@ router.get('/', async (req, res) => {
       var decoded = jwt.verify(token, process.env.JWT_SECRET || 'viewingone-dev-secret-key-2026');
       var agentId = decoded.agentId || decoded.id || '';
       
+      // Archived mode? (?status=archived returns sold/rented properties)
+      var wantArchived = req.query.status === 'archived';
+      var statusFilter = wantArchived ? { $in: ['sold', 'rented'] } : 'active';
+      
       // Try MongoDB first
       var db = await getDb();
       if (db) {
         // Query by agentId to ensure data isolation
-        var props = await db.collection('properties').find({ status: 'active', agentId: agentId }).sort({ createdAt: -1 }).toArray();
+        var props = await db.collection('properties').find({ status: statusFilter, agentId: agentId }).sort({ createdAt: -1 }).toArray();
         if (props && props.length > 0) {
           props = props.map(function(p) {
             p._id = p._id.toString ? p._id.toString() : p._id;
@@ -241,7 +245,10 @@ router.get('/', async (req, res) => {
       if (!props.length) {
         try { props = JSON.parse(require('fs').readFileSync('/tmp/properties.json','utf8')); } catch(e){}
       }
-      props = props.filter(function(p) { return p.agentId === agentId; });
+      props = props.filter(function(p) {
+        if (p.agentId !== agentId) return false;
+        return wantArchived ? (p.status === 'sold' || p.status === 'rented') : p.status === 'active';
+      });
       props = deduplicateProperties(props);
       // Strip reference numbers from titles (defense-in-depth)
       props.forEach(function(p) { if (p.title) p.title = p.title.replace(/\s*\|\s*T\d+\s*$/i, ''); });
@@ -357,6 +364,72 @@ router.patch('/:id', async (req, res) => {
     }
   } catch (error) {
     console.error('Patch property error:', error);
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
+});
+
+// POST /api/properties/:id/status — Mark property as sold/rented (archives it) or restore to active
+router.post('/:id/status', async (req, res) => {
+  try {
+    const token = req.header('Authorization')?.replace('Bearer ', '');
+    if (!token) return res.status(401).json({ success: false, message: 'Auth required' });
+
+    var status = (req.body.status || '').toLowerCase();
+    if (['active', 'sold', 'rented'].indexOf(status) === -1) {
+      return res.status(400).json({ success: false, message: 'Status must be active, sold or rented' });
+    }
+
+    var found = false;
+    var updatedProp = null;
+    
+    // In-memory first
+    if (global.__inMemoryProperties) {
+      for (var i = 0; i < global.__inMemoryProperties.length; i++) {
+        if (String(global.__inMemoryProperties[i]._id) === req.params.id || global.__inMemoryProperties[i].id === req.params.id) {
+          var prop = global.__inMemoryProperties[i];
+          prop.status = status;
+          prop.statusChangedAt = new Date();
+          if (status === 'sold' || status === 'rented') {
+            prop.statusPrice = prop.price || '';
+            prop.outcome = status;
+          } else {
+            prop.statusPrice = prop.statusPrice || '';
+            prop.outcome = '';
+          }
+          found = true;
+          updatedProp = prop;
+          persistCache();
+          // Persist to Gist (best-effort)
+          try {
+            var gistUpd = require('../../gist-persistence');
+            await new Promise(function(re) { gistUpd.saveProperty(prop, function() { re(); }); });
+          } catch(e) {}
+          // Sync MongoDB
+          try {
+            var db = await getDb();
+            if (db) {
+              var set = { status: status, statusChangedAt: new Date(), updatedAt: new Date() };
+              if (status === 'sold' || status === 'rented') {
+                set.statusPrice = prop.price || '';
+                set.outcome = status;
+              } else {
+                set.outcome = '';
+              }
+              await db.collection('properties').updateOne({ _id: prop._id }, { $set: set }).catch(function(){});
+            }
+          } catch(e) {}
+          break;
+        }
+      }
+    }
+
+    if (found) {
+      res.json({ success: true, message: 'Property marked as ' + status, property: updatedProp });
+    } else {
+      res.status(404).json({ success: false, message: 'Property not found' });
+    }
+  } catch (error) {
+    console.error('Mark status error:', error);
     res.status(500).json({ success: false, message: 'Server error' });
   }
 });
