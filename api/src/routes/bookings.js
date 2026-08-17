@@ -49,7 +49,7 @@ async function resolveAgentEmail(propertyId) {
   return null;
 }
 
-async function notifyAgentBooking(agentEmail, propertyTitle, visitorName, visitorWhatsApp, visitorEmail, date, time, propertyId) {
+async function notifyAgentBooking(agentEmail, propertyTitle, visitorName, visitorWhatsApp, visitorEmail, date, time, propertyId, location) {
   if (!transporter) return;
   // If no agentEmail provided, try to resolve from propertyId
   if (!agentEmail && propertyId) {
@@ -58,21 +58,56 @@ async function notifyAgentBooking(agentEmail, propertyTitle, visitorName, visito
   if (!agentEmail) return;
   try {
     var isRequest = (date === 'To be arranged');
+
+    // Path 1: Add-to-Calendar block (Google + Outlook links and .ics attachment)
+    var cal = require('../calendar-helper');
+    var esc = cal.htmlEscape;
+    var calendarHTML = '';
+    var attachments = [];
+
+    if (!isRequest) {
+      var start = cal.parseSlotDateTime(date, time);
+      if (start) {
+        var end = new Date(start.getTime() + cal.VIEWING_DURATION_MINUTES * 60000);
+        var eventTitle = 'Viewing: ' + propertyTitle;
+        var eventLocation = location || propertyTitle;
+        var eventDescription = 'Viewing booked via viewing.one\nProperty: ' + propertyTitle +
+          '\nVisitor: ' + visitorName +
+          '\nWhatsApp: ' + visitorWhatsApp +
+          (visitorEmail ? '\nEmail: ' + visitorEmail : '');
+        var links = cal.buildCalendarLinks({ start: start, end: end, title: eventTitle, description: eventDescription, location: eventLocation });
+        var ics = cal.buildIcs({
+          start: start, end: end, title: eventTitle, description: eventDescription, location: eventLocation,
+          organizerName: 'Viewing.One', organizerEmail: 'listings@viewing.one'
+        });
+        attachments.push({ filename: 'viewing.ics', content: ics, contentType: 'text/calendar' });
+        calendarHTML =
+          '<p><strong>Add to your calendar:</strong></p>' +
+          '<p>' +
+          '<a href="' + links.google + '" style="display:inline-block;background:#1a73e8;color:#ffffff;text-decoration:none;padding:8px 14px;border-radius:6px;margin-right:8px;">Add to Google Calendar</a>' +
+          '<a href="' + links.outlook + '" style="display:inline-block;background:#0078d4;color:#ffffff;text-decoration:none;padding:8px 14px;border-radius:6px;">Add to Outlook</a>' +
+          '</p>' +
+          '<p style="font-size:12px;color:#888;">Or open the attached viewing.ics file to add it to Apple Calendar or any other calendar app.</p>';
+      }
+    }
+
     await transporter.sendMail({
       from: '"Viewing.One" <listings@viewing.one>',
       to: agentEmail,
       subject: (isRequest ? 'New Viewing Request: ' : 'New Viewing Booking: ') + propertyTitle,
       html: '<h2>' + (isRequest ? 'New Viewing Request' : 'New Viewing Booking') + '</h2>' +
-        '<p><strong>Property:</strong> ' + propertyTitle + '</p>' +
+        '<p><strong>Property:</strong> ' + esc(propertyTitle) + '</p>' +
         (isRequest
           ? '<p><strong>Status:</strong> ⏳ No time set yet - <a href="https://viewing.one/dashboard.html">Set a viewing time</a></p>'
-          : '<p><strong>Date:</strong> ' + date + '</p>' +
-            '<p><strong>Time:</strong> ' + time + '</p>'
+          : '<p><strong>Date:</strong> ' + esc(date) + '</p>' +
+            '<p><strong>Time:</strong> ' + esc(time) + '</p>'
         ) +
-        '<p><strong>Visitor:</strong> ' + visitorName + '</p>' +
-        '<p><strong>WhatsApp:</strong> ' + visitorWhatsApp + '</p>' +
-        (visitorEmail ? '<p><strong>Email:</strong> ' + visitorEmail + '</p>' : '') +
-        '<hr><p style="color:#888;">Viewing.One - Property Viewing Management</p>'
+        '<p><strong>Visitor:</strong> ' + esc(visitorName) + '</p>' +
+        '<p><strong>WhatsApp:</strong> ' + esc(visitorWhatsApp) + '</p>' +
+        (visitorEmail ? '<p><strong>Email:</strong> ' + esc(visitorEmail) + '</p>' : '') +
+        (calendarHTML ? '<hr>' + calendarHTML : '') +
+        '<hr><p style="color:#888;">Viewing.One - Property Viewing Management</p>',
+      attachments: attachments
     });
   } catch(e) {
     console.error('Booking notification email error:', e.message);
@@ -121,7 +156,7 @@ router.post('/', async (req, res) => {
             } catch(e) {}
           }
 
-          notifyAgentBooking(agentEmail, property.title, visitorName, visitorWhatsApp, visitorEmail, 'To be arranged', 'To be arranged', propertyId);
+          notifyAgentBooking(agentEmail, property.title, visitorName, visitorWhatsApp, visitorEmail, 'To be arranged', 'To be arranged', propertyId, property.location);
 
           return res.status(201).json({
             success: true, message: 'Viewing request sent! The agent will contact you with available times.',
@@ -159,7 +194,7 @@ router.post('/', async (req, res) => {
         }
 
         // Send email notification async (don't block response)
-        notifyAgentBooking(agentEmail, property.title, visitorName, visitorWhatsApp, visitorEmail, slot.date, slot.time, propertyId);
+        notifyAgentBooking(agentEmail, property.title, visitorName, visitorWhatsApp, visitorEmail, slot.date, slot.time, propertyId, property.location);
 
         var bookedMsg = isOverCapacity
           ? 'This time slot has reached capacity, but your details have been sent to the agent. They\'ll be in touch when a new slot opens up.'
@@ -248,7 +283,7 @@ router.post('/', async (req, res) => {
       } catch(e) { console.error('MongoDB request sync error:', e.message); }
 
       // Send notification email async
-      notifyAgentBooking(agentEmail, prop.title, visitorName, visitorWhatsApp, visitorEmail, 'To be arranged', 'To be arranged', prop._id || prop.id || propertyId);
+      notifyAgentBooking(agentEmail, prop.title, visitorName, visitorWhatsApp, visitorEmail, 'To be arranged', 'To be arranged', prop._id || prop.id || propertyId, prop.location);
 
       return res.status(201).json({
         success: true, message: 'Viewing request sent! The agent will contact you with available times.',
@@ -316,7 +351,7 @@ router.post('/', async (req, res) => {
     } catch(e2) { console.error('MongoDB booking sync error:', e2.message); }
 
     // Send notification email async
-    notifyAgentBooking(agentEmail, prop.title, visitorName, visitorWhatsApp, visitorEmail, slot.date, slot.time, prop._id || prop.id || propertyId);
+    notifyAgentBooking(agentEmail, prop.title, visitorName, visitorWhatsApp, visitorEmail, slot.date, slot.time, prop._id || prop.id || propertyId, prop.location);
 
     var bookedMsg = isOverCapacity
       ? 'This time slot has reached capacity, but your details have been sent to the agent. They\'ll be in touch when a new slot opens up.'
