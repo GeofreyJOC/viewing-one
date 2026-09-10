@@ -9,8 +9,39 @@
 //   • Honeypot field
 const express = require('express');
 const crypto = require('crypto');
-const fetch = require('node-fetch');
+const https = require('https');
+const { URL } = require('url');
 const { KB } = require('./chat-kb');
+
+// Minimal raw-HTTPS JSON helper (avoids node-fetch keep-alive "premature close"
+// quirks seen on some hosts). agent:false forces a fresh connection per request.
+function httpsJson(urlStr, opts) {
+  opts = opts || {};
+  const timeout = opts.timeout || 30000;
+  return new Promise(function (resolve, reject) {
+    const u = new URL(urlStr);
+    const body = opts.body == null ? '' : (typeof opts.body === 'string' ? opts.body : JSON.stringify(opts.body));
+    const headers = Object.assign({}, opts.headers || {});
+    if (body) headers['Content-Length'] = Buffer.byteLength(body);
+    const req = https.request({
+      hostname: u.hostname,
+      port: u.port || 443,
+      path: u.pathname + u.search,
+      method: opts.method || 'POST',
+      headers: headers,
+      agent: false
+    }, function (res) {
+      let raw = '';
+      res.setEncoding('utf8');
+      res.on('data', function (c) { raw += c; });
+      res.on('end', function () { resolve({ status: res.statusCode, body: raw }); });
+    });
+    req.on('error', reject);
+    req.setTimeout(timeout, function () { req.destroy(new Error('request timeout')); });
+    if (body) req.write(body);
+    req.end();
+  });
+}
 
 const router = express.Router();
 
@@ -44,17 +75,18 @@ const ipHits = new Map();     // ip -> [timestamps]
 const ipDaily = new Map();    // ip -> { day, count }
 let budget = { day: dayKey(), tokens: 0 };
 
-function dayKey(d = new Date()) { return d.toISOString().slice(0, 10); }
+function dayKey(d) { return (d || new Date()).toISOString().slice(0, 10); }
 
 function pruneSessions() {
   const now = Date.now();
   for (const [id, s] of sessions) if (now - s.createdAt > SESSION_TTL_MS) sessions.delete(id);
 }
-setInterval(pruneSessions, 10 * 60 * 1000).unref?.();
+const pruneTimer = setInterval(pruneSessions, 10 * 60 * 1000);
+if (pruneTimer.unref) pruneTimer.unref();
 
 function clientIp(req) {
   const xf = (req.headers['x-forwarded-for'] || '').split(',')[0].trim();
-  return xf || req.socket?.remoteAddress || 'unknown';
+  return xf || (req.socket && req.socket.remoteAddress) || 'unknown';
 }
 
 function rateCheck(ip) {
@@ -98,8 +130,7 @@ function verifyToken(token) {
   if (!token || typeof token !== 'string') return null;
   const parts = token.split('.');
   if (parts.length !== 3) return null;
-  const [id, iatStr, sig] = parts;
-  const iat = parseInt(iatStr, 10);
+  const id = parts[0], iat = parseInt(parts[1], 10), sig = parts[2];
   if (!id || !iat) return null;
   const expected = sign(id, iat);
   const a = Buffer.from(sig), b = Buffer.from(expected);
@@ -116,13 +147,15 @@ async function verifyTurnstile(token, ip) {
   if (!secret) return true; // not configured → open (dev). Set TURNSTILE_SECRET_KEY to enforce.
   if (!token) return false;
   try {
-    const body = new URLSearchParams({ secret, response: token, remoteip: ip });
-    const r = await fetch('https://challenges.cloudflare.com/turnstile/v0/siteverify', {
-      method: 'POST', body, timeout: 8000
+    const body = new URLSearchParams({ secret, response: token, remoteip: ip }).toString();
+    const r = await httpsJson('https://challenges.cloudflare.com/turnstile/v0/siteverify', {
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: body,
+      timeout: 8000
     });
-    const j = await r.json();
+    const j = JSON.parse(r.body);
     return !!j.success;
-  } catch (e) { 
+  } catch (e) {
     console.error('Turnstile verify error:', e.message);
     return false;
   }
@@ -132,13 +165,12 @@ async function verifyTurnstile(token, ip) {
 function postTelegram(text) {
   const token = process.env.TG_BOT_TOKEN, chatId = process.env.TG_CHAT_ID;
   if (!token || !chatId) return;
-  const payload = { chat_id: chatId, text, parse_mode: 'HTML', disable_web_page_preview: true };
+  const payload = { chat_id: chatId, text: text, parse_mode: 'HTML', disable_web_page_preview: true };
   if (process.env.TG_THREAD_ID) payload.message_thread_id = process.env.TG_THREAD_ID;
   const body = JSON.stringify(payload);
-  const https = require('https');
   const req = https.request('https://api.telegram.org/bot' + token + '/sendMessage', {
     method: 'POST', headers: { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(body) }
-  }, res => { res.on('data', () => {}); res.on('end', () => {}); });
+  }, function (res) { res.on('data', function () {}); res.on('end', function () {}); });
   req.on('error', e => console.error('TG chat-lead error:', e.message));
   req.write(body); req.end();
 }
@@ -167,26 +199,24 @@ function systemPrompt() {
 // ---------- deepseek ----------
 async function callModel(history) {
   const messages = [{ role: 'system', content: systemPrompt() }].concat(history);
-  const r = await fetch(CFG.baseUrl() + '/chat/completions', {
-    method: 'POST',
+  const r = await httpsJson(CFG.baseUrl() + '/chat/completions', {
     headers: {
       'Content-Type': 'application/json',
       'Authorization': 'Bearer ' + CFG.apiKey()
     },
-    body: JSON.stringify({
+    body: {
       model: CFG.model(),
-      messages,
+      messages: messages,
       max_tokens: MAX_OUTPUT_TOKENS,
       temperature: 0.4,
       stream: false
-    }),
+    },
     timeout: 30000
   });
-  if (!r.ok) {
-    const t = await r.text().catch(() => '');
-    throw new Error('DeepSeek ' + r.status + ': ' + t.slice(0, 200));
+  if (r.status < 200 || r.status >= 300) {
+    throw new Error('DeepSeek ' + r.status + ': ' + r.body.slice(0, 200));
   }
-  const j = await r.json();
+  const j = JSON.parse(r.body);
   const reply = (j.choices && j.choices[0] && j.choices[0].message && j.choices[0].message.content || '').trim();
   const used = (j.usage && j.usage.total_tokens) || 0;
   return { reply, used };
