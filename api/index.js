@@ -98,6 +98,9 @@ app.use('/api/contact', contactRoutes);
 app.use('/api/payments', paymentRoutes);
 app.use('/api/payfast', paymentRoutes);
 
+// Landing-page AI assistant (grounded, rate-limited, Turnstile-gated)
+app.use('/api/chat', require('./src/chat'));
+
 // PayPal payment routes
 const paypalRoutes = require('./src/routes/payments-paypal');
 app.use('/api/paypal', paypalRoutes);
