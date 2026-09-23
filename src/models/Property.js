@@ -78,6 +78,16 @@ const PropertySchema = new mongoose.Schema({
       type: String,
       required: true
     },
+    source: {
+      type: String,
+      enum: ['seller', 'agent'],
+      default: 'agent'
+    },
+    status: {
+      type: String,
+      enum: ['pending', 'published', 'booked'],
+      default: 'published'
+    },
     isBooked: {
       type: Boolean,
       default: false
@@ -89,6 +99,17 @@ const PropertySchema = new mongoose.Schema({
       bookedAt: Date
     }
   }],
+
+  // Seller availability link + settings
+  sellerToken: { type: String, default: '' },
+  availability: {
+    windowStart: { type: String, default: '08:00' },
+    windowEnd: { type: String, default: '20:00' },
+    slotMinutes: { type: Number, default: 60 }
+  },
+  notifySeller: { type: Boolean, default: false },
+  sellerName: { type: String, default: '' },
+  sellerEmail: { type: String, default: '' },
   
   // Status
   status: {

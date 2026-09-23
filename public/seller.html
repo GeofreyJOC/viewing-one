@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Your viewing availability — Viewing.One</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --gold:#c9a96e; --gold-d:#a8853e; --ink:#1a1714; --cream:#f4f1ec;
+    --line:#e7e2da; --muted:#8a8278;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:'Inter',sans-serif;background:linear-gradient(180deg,#f4f1ec,#eae5dd);color:var(--ink);min-height:100vh;padding:20px 14px 40px}
+  .wrap{max-width:520px;margin:0 auto}
+  .brand{font-family:'Playfair Display',serif;font-size:20px;font-weight:700;text-align:center;margin-bottom:16px}
+  .brand b{color:var(--gold-d)}
+  .card{background:#fbf9f6;border:1px solid var(--line);border-radius:16px;box-shadow:0 8px 30px rgba(26,23,20,.08);overflow:hidden}
+  .hero{padding:22px 20px 16px;border-bottom:1px solid var(--line)}
+  .hero h1{font-family:'Playfair Display',serif;font-size:22px;font-weight:600;line-height:1.25;margin-bottom:8px}
+  .hero p{font-size:13.5px;color:#6b6560;line-height:1.55}
+  .propline{display:flex;align-items:center;gap:8px;margin-top:12px;background:#f3efe9;border:1px solid var(--line);border-radius:10px;padding:9px 12px;font-size:13px}
+  .propline b{font-weight:600}
+  .body{padding:16px 20px 8px}
+  .dayhead{display:flex;justify-content:space-between;align-items:baseline;margin:14px 0 8px}
+  .dayhead b{font-size:14px;font-weight:600}
+  .dayhead span{font-size:11.5px;color:var(--muted)}
+  .chips{display:flex;flex-wrap:wrap;gap:7px}
+  .chip{font-size:12.5px;font-weight:500;padding:8px 12px;border-radius:9px;border:1px solid var(--line);background:#fff;color:#5a554d;cursor:pointer;user-select:none;transition:all .12s}
+  .chip:hover{border-color:var(--gold)}
+  .chip.on{background:linear-gradient(135deg,#c9a96e,#a8853e);border-color:transparent;color:#fff;box-shadow:0 2px 6px rgba(168,133,62,.3)}
+  .chip.locked{background:#e7f7ef;border-color:#84d6ab;color:#15803d;cursor:default}
+  .chip.booked{background:#fdecec;border-color:#f0a3a3;color:#c0392b;cursor:default}
+  .legend{display:flex;gap:14px;flex-wrap:wrap;font-size:11.5px;color:#6b6560;margin:6px 0 2px}
+  .legend i{display:inline-block;width:11px;height:11px;border-radius:3px;margin-right:5px;vertical-align:-1px}
+  .cta{padding:14px 20px 20px;background:linear-gradient(180deg,rgba(251,249,246,0),#fbf9f6 40%)}
+  .btn{width:100%;border:none;border-radius:12px;height:52px;font-family:'Inter';font-size:15px;font-weight:600;color:#fff;background:linear-gradient(135deg,#c9a96e,#a8853e);box-shadow:0 6px 16px rgba(168,133,62,.3);cursor:pointer}
+  .btn[disabled]{opacity:.6;cursor:default}
+  .note{font-size:11.5px;color:var(--muted);text-align:center;margin-bottom:10px}
+  .confirm{padding:40px 26px;text-align:center}
+  .tick{width:80px;height:80px;border-radius:50%;background:linear-gradient(135deg,#c9a96e,#a8853e);display:flex;align-items:center;justify-content:center;margin:0 auto 20px;box-shadow:0 10px 26px rgba(168,133,62,.36)}
+  .confirm h2{font-family:'Playfair Display',serif;font-size:23px;font-weight:600;line-height:1.25;margin-bottom:14px}
+  .confirm p{font-size:14px;color:#5a554d;line-height:1.62;margin-bottom:10px}
+  .confirm .agent{color:var(--ink);font-weight:600}
+  .confirm .box{background:#f3efe9;border:1px solid var(--line);border-radius:12px;padding:14px 16px;font-size:12.5px;color:#6b6560;line-height:1.55;margin-top:14px;text-align:left}
+  .ghost{display:inline-block;margin-top:22px;border:1px solid var(--line);background:#fff;color:#5a554d;border-radius:12px;padding:0 22px;height:46px;line-height:44px;font-size:14px;font-weight:600;cursor:pointer;text-decoration:none}
+  .loading,.err{padding:36px 24px;text-align:center;color:var(--muted);font-size:14px}
+  .err{color:#c0392b}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="brand">viewing<b>.one</b></div>
+  <div class="card" id="card"><div class="loading">Loading your availability…</div></div>
+</div>
+
+<script>
+(function(){
+  var token = (location.pathname.match(/\/s\/([A-Za-z0-9]+)/) || [])[1] || '';
+  var card = document.getElementById('card');
+  var data = null;
+  var selected = {}; // key date|time -> true (seller-toggleable)
+  var DAYS = 14;
+
+  function pad(n){ return (n<10?'0':'')+n; }
+  function toMinutes(t){ var m=String(t||'').match(/^(\d{1,2}):(\d{2})/); return m?(parseInt(m[1],10)*60+parseInt(m[2],10)):0; }
+  function fmtDay(d){ return d.toLocaleDateString('en-ZA',{weekday:'long',day:'numeric',month:'short'}); }
+  function esc(s){ return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];}); }
+
+  function load(){
+    if(!token){ card.innerHTML='<div class="err">This link is invalid.</div>'; return; }
+    fetch('/api/seller/'+token).then(function(r){return r.json();}).then(function(d){
+      if(!d || !d.success){ card.innerHTML='<div class="err">'+(d&&d.message?esc(d.message):'This availability link is no longer valid.')+'</div>'; return; }
+      data = d;
+      // pre-select the seller's own pending slots
+      (d.slots||[]).forEach(function(s){
+        if(s.source==='seller' && s.status!=='booked' && s.status!=='published'){ selected[s.date+'|'+s.time]=true; }
+      });
+      render();
+    }).catch(function(){ card.innerHTML='<div class="err">Could not load this link. Please try again.</div>'; });
+  }
+
+  function slotState(date,time){
+    var hit=(data.slots||[]).find(function(s){return s.date===date && s.time===time;});
+    if(!hit) return 'free';
+    if(hit.status==='booked') return 'booked';
+    if(hit.status==='published') return 'locked';
+    return 'pending'; // seller pending -> toggleable
+  }
+
+  function render(){
+    var s = data.settings || {windowStart:'08:00',windowEnd:'20:00',slotMinutes:60};
+    var startM = toMinutes(s.windowStart), endM = toMinutes(s.windowEnd), step = parseInt(s.slotMinutes,10)||60;
+    var today = new Date(); today.setHours(0,0,0,0);
+    var html = '';
+    html += '<div class="hero">';
+    html += '<h1>When are you free for viewings?</h1>';
+    html += '<p>Tap the times that suit you. Your agent will then offer them to interested buyers.</p>';
+    html += '<div class="propline">🏠 <span><b>'+esc(data.property.title)+'</b>'+(data.property.location?' · '+esc(data.property.location):'')+'</span></div>';
+    html += '</div>';
+    html += '<div class="body">';
+    html += '<div class="legend"><span><i style="background:#fff;border:1px solid #e7e2da"></i>Available</span><span><i style="background:linear-gradient(135deg,#c9a96e,#a8853e)"></i>Your pick</span><span><i style="background:#e7f7ef;border:1px solid #84d6ab"></i>Offered</span><span><i style="background:#fdecec;border:1px solid #f0a3a3"></i>Booked</span></div>';
+
+    for(var d=0; d<DAYS; d++){
+      var dt = new Date(today); dt.setDate(today.getDate()+d);
+      var dstr = dt.getFullYear()+'-'+pad(dt.getMonth()+1)+'-'+pad(dt.getDate());
+      // only render days that have any pickable/locked/booked slot OR nothing — show weekends + all days
+      var chips = '';
+      for(var m=startM; m<endM; m+=step){
+        var time = pad(Math.floor(m/60))+':'+pad(m%60);
+        var st = slotState(dstr,time);
+        var key = dstr+'|'+time;
+        var cls = 'chip';
+        if(st==='booked') cls+=' booked';
+        else if(st==='locked') cls+=' locked';
+        else if(selected[key]) cls+=' on';
+        var clickable = (st==='free'||st==='pending');
+        chips += '<div class="'+cls+'"'+(clickable?' data-key="'+key+'"':'')+'>'+time+(st==='booked'?' · booked':(st==='locked'?' · offered':''))+'</div>';
+      }
+      html += '<div class="dayhead"><b>'+fmtDay(dt)+(d===0?' (today)':(d===1?' (tomorrow)':''))+'</b><span>'+step+'-min slots</span></div>';
+      html += '<div class="chips">'+chips+'</div>';
+    }
+    html += '</div>';
+    html += '<div class="cta"><div class="note" id="cnt"></div><button class="btn" id="submitBtn">Submit availability</button></div>';
+    card.innerHTML = html;
+    updateCount();
+
+    card.querySelectorAll('.chip[data-key]').forEach(function(el){
+      el.addEventListener('click', function(){
+        var k = el.getAttribute('data-key');
+        if(selected[k]) delete selected[k]; else selected[k]=true;
+        el.classList.toggle('on');
+        updateCount();
+      });
+    });
+    document.getElementById('submitBtn').addEventListener('click', submit);
+  }
+
+  function updateCount(){
+    var n = Object.keys(selected).length;
+    var c = document.getElementById('cnt');
+    if(c) c.textContent = n + (n===1?' time selected':' times selected');
+    var b = document.getElementById('submitBtn');
+    if(b) b.disabled = n===0;
+  }
+
+  function submit(){
+    var slots = Object.keys(selected).map(function(k){ var p=k.split('|'); return {date:p[0], time:p[1]}; });
+    if(!slots.length) return;
+    var b = document.getElementById('submitBtn'); b.disabled=true; b.textContent='Submitting…';
+    fetch('/api/seller/'+token, {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({slots: slots})
+    }).then(function(r){return r.json();}).then(function(d){
+      if(!d || !d.success){ b.disabled=false; b.textContent='Submit availability'; alert((d&&d.message)||'Could not submit. Please try again.'); return; }
+      var agentName = (d.agent && d.agent.name) || (data.agent && data.agent.name) || 'your agent';
+      var company = (d.agent && d.agent.companyName) || (data.agent && data.agent.companyName) || '';
+      var namePart = esc(agentName) + (company ? ' at ' + esc(company) : '');
+      card.innerHTML =
+        '<div class="confirm">' +
+        '<div class="tick"><svg width="38" height="38" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></div>' +
+        '<h2>Thanks — your times are on their way</h2>' +
+        '<p>We\'ve sent your availability to <span class="agent">' + namePart + '</span>.</p>' +
+        '<p>They\'ll offer them to interested buyers and confirm each viewing with you before it happens.</p>' +
+        '<div class="box">Changed your mind? Just reopen this link anytime to update your times. Any viewing already offered or booked stays locked so nothing gets pulled out from under a buyer.</div>' +
+        '<a class="ghost" href="javascript:location.reload()">Update my times</a>' +
+        '</div>';
+    }).catch(function(){
+      b.disabled=false; b.textContent='Submit availability'; alert('Could not submit. Please try again.');
+    });
+  }
+
+  load();
+})();
+</script>
+</body>
+</html>

@@ -166,7 +166,7 @@ router.get('/:slug', async (req, res) => {
         price: p.price, location: p.location,
         bedrooms: p.bedrooms, bathrooms: p.bathrooms, size: p.size,
         propertyType: p.propertyType, images: p.images || [], sourceUrl: p.sourceUrl || '',
-        viewingSlots: (p.viewingSlots || []).map(s => ({
+        viewingSlots: (p.viewingSlots || []).filter(s => !s.status || s.status === 'published' || s.status === 'booked').map(s => ({
           id: s.id || (s._id ? s._id.toString() : Date.now().toString()),
           date: s.date, time: s.time,
           bookings: s.bookings || [],

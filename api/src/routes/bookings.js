@@ -114,6 +114,41 @@ async function notifyAgentBooking(agentEmail, propertyTitle, visitorName, visito
   }
 }
 
+// Notify the seller that a viewing has been booked (only if the agent enabled it).
+async function notifySellerBooking(prop, date, time, visitorName) {
+  if (!transporter || !prop || !prop.notifySeller || !prop.sellerEmail) return;
+  try {
+    var cal = require('../calendar-helper');
+    var esc = cal.htmlEscape;
+    var calendarHTML = '';
+    var attachments = [];
+    var start = cal.parseSlotDateTime(date, time);
+    if (start) {
+      var end = new Date(start.getTime() + cal.VIEWING_DURATION_MINUTES * 60000);
+      var eventTitle = 'Viewing at your property: ' + (prop.title || '');
+      var links = cal.buildCalendarLinks({ start: start, end: end, title: eventTitle, description: '', location: prop.location || prop.title || '' });
+      var ics = cal.buildIcs({ start: start, end: end, title: eventTitle, description: 'Viewing booked via viewing.one', location: prop.location || prop.title || '' });
+      attachments.push({ filename: 'viewing.ics', content: ics, contentType: 'text/calendar' });
+      calendarHTML =
+        '<p><a href="' + links.google + '" style="display:inline-block;background:#1a73e8;color:#fff;text-decoration:none;padding:8px 14px;border-radius:6px;margin-right:8px;">Add to Google Calendar</a>' +
+        '<a href="' + links.outlook + '" style="display:inline-block;background:#0078d4;color:#fff;text-decoration:none;padding:8px 14px;border-radius:6px;">Add to Outlook</a></p>';
+    }
+    await transporter.sendMail({
+      from: '"Viewing.One" <listings@viewing.one>',
+      to: prop.sellerEmail,
+      subject: 'Viewing booked at ' + (prop.title || 'your property'),
+      html: '<h2>A viewing has been booked</h2>' +
+        '<p><strong>Property:</strong> ' + esc(prop.title || '') + '</p>' +
+        '<p><strong>Date:</strong> ' + esc(date) + '</p>' +
+        '<p><strong>Time:</strong> ' + esc(time) + '</p>' +
+        '<p><strong>Visitor:</strong> ' + esc(visitorName) + '</p>' +
+        (calendarHTML ? '<hr>' + calendarHTML : '') +
+        '<hr><p style="color:#888;">Viewing.One - Property Viewing Management</p>',
+      attachments: attachments
+    });
+  } catch (e) { console.error('Seller booking notification error:', e.message); }
+}
+
 // POST /api/bookings - Create a new booking
 router.post('/', async (req, res) => {
   try {
@@ -169,6 +204,11 @@ router.post('/', async (req, res) => {
           throw new Error('Slot not found in Mongoose, falling through');
         }
 
+        // Only published (or already-booked) slots are bookable — pending ones are not public yet.
+        if (slot.status && slot.status !== 'published' && slot.status !== 'booked') {
+          return res.status(400).json({ success: false, message: 'This viewing time is not available for booking yet.' });
+        }
+
         // Allow multiple bookings per slot
         if (!slot.bookings) slot.bookings = [];
         // Soft capacity cap: still accept the booking but flag it to the visitor
@@ -181,6 +221,7 @@ router.post('/', async (req, res) => {
           bookedAt: new Date()
         });
         slot.bookingCount = slot.bookings.length;
+        slot.status = 'booked';
         if (!isOverCapacity) {
           property.bookingCount = (property.bookingCount || 0) + 1;
         }
@@ -195,6 +236,7 @@ router.post('/', async (req, res) => {
 
         // Send email notification async (don't block response)
         notifyAgentBooking(agentEmail, property.title, visitorName, visitorWhatsApp, visitorEmail, slot.date, slot.time, propertyId, property.location);
+        notifySellerBooking(property, slot.date, slot.time, visitorName);
 
         var bookedMsg = isOverCapacity
           ? 'This time slot has reached capacity, but your details have been sent to the agent. They\'ll be in touch when a new slot opens up.'
@@ -296,6 +338,11 @@ router.post('/', async (req, res) => {
       return res.status(404).json({ success: false, message: 'Slot not found' });
     }
 
+    // Only published (or already-booked) slots are bookable — pending ones are not public yet.
+    if (slot.status && slot.status !== 'published' && slot.status !== 'booked') {
+      return res.status(400).json({ success: false, message: 'This viewing time is not available for booking yet.' });
+    }
+
     // Allow multiple bookings per slot
     if (!slot.bookings) slot.bookings = [];
     // Soft capacity cap: still accept the booking but flag it to the visitor
@@ -308,6 +355,7 @@ router.post('/', async (req, res) => {
       bookedAt: new Date()
     });
     slot.bookingCount = slot.bookings.length;
+    slot.status = 'booked';
 
     // Persist booking to Gist (blocking — ensures cross-instance consistency)
     try {
@@ -352,6 +400,7 @@ router.post('/', async (req, res) => {
 
     // Send notification email async
     notifyAgentBooking(agentEmail, prop.title, visitorName, visitorWhatsApp, visitorEmail, slot.date, slot.time, prop._id || prop.id || propertyId, prop.location);
+    notifySellerBooking(prop, slot.date, slot.time, visitorName);
 
     var bookedMsg = isOverCapacity
       ? 'This time slot has reached capacity, but your details have been sent to the agent. They\'ll be in touch when a new slot opens up.'

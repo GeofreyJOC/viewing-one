@@ -4,6 +4,8 @@ const viewingSlotSchema = new mongoose.Schema({
   id: { type: String },
   date: { type: String, required: true },
   time: { type: String, required: true },
+  source: { type: String, enum: ['seller', 'agent'], default: 'agent' },
+  status: { type: String, enum: ['pending', 'published', 'booked'], default: 'published' },
   isBooked: { type: Boolean, default: false },
   bookedBy: { type: String },
   bookedWhatsApp: { type: String },
@@ -41,7 +43,17 @@ const propertySchema = new mongoose.Schema({
   
   // Viewing slots
   viewingSlots: [viewingSlotSchema],
-  
+
+  // Seller availability link + settings
+  sellerToken: { type: String, default: '' },
+  availability: {
+    windowStart: { type: String, default: '08:00' },
+    windowEnd: { type: String, default: '20:00' },
+    slotMinutes: { type: Number, default: 60 }
+  },
+  notifySeller: { type: Boolean, default: false },
+  sellerName: { type: String, default: '' },
+  sellerEmail: { type: String, default: '' },
   // Status
   status: { type: String, enum: ['draft', 'active', 'sold', 'rented', 'removed'], default: 'draft' },
   statusChangedAt: { type: Date },

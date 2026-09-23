@@ -72,6 +72,7 @@ const authRoutes = require('./src/routes/auth');
 const propertyRoutes = require('./src/routes/properties');
 const agentRoutes = require('./src/routes/agents');
 const bookingRoutes = require('./src/routes/bookings');
+const availabilityRoutes = require('./src/routes/availability');
 const emailRoutes = require('./src/routes/email-inbound');
 const scrapeRoutes = require('./src/routes/scrape');
 const uploadRoutes = require('./src/routes/upload-images');
@@ -89,6 +90,8 @@ app.use('/api/auth', authRoutes);
 app.use('/api/properties', propertyRoutes);
 app.use('/api/agents', agentRoutes);
 app.use('/api/bookings', bookingRoutes);
+app.use('/api/availability', availabilityRoutes.agent);
+app.use('/api/seller', availabilityRoutes.seller);
 app.use('/api/properties', uploadRoutes);
 app.use('/api/properties', emailRoutes);
 app.use('/api', scrapeRoutes);
@@ -379,6 +382,11 @@ app.get('/api/health', async (req, res) => {
   });
 });
 
+// Seller availability link (public, token-gated) — renders the seller page
+app.get('/s/:token', (req, res) => {
+  res.sendFile(path.join(__dirname, '..', 'public', 'seller.html'));
+});
+
 // Agent page routing
 app.get('/:slug', async (req, res, next) => {
   const { slug } = req.params;
@@ -555,7 +563,9 @@ app.get('/:slug', async (req, res, next) => {
           features: p.features || [],
           bedrooms: p.bedrooms, bathrooms: p.bathrooms, parkingSpaces: p.parkingSpaces,
           type: p.type, status: p.status,
-          viewingSlots: p.viewingSlots || p.availableSlots || p.slots || [],
+          viewingSlots: (p.viewingSlots || p.availableSlots || p.slots || []).filter(function(s) {
+            return !s.status || s.status === 'published' || s.status === 'booked';
+          }),
           viewingRequests: p.viewingRequests || [],
           createdAt: p.createdAt
         };

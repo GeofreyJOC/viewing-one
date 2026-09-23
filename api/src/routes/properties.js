@@ -443,10 +443,15 @@ router.post('/:id/slots', async (req, res) => {
     var { date, time, maxBookings } = req.body;
     if (!date || !time) return res.status(400).json({ success: false, message: 'Date and time required' });
 
+    // Agent-added slots publish immediately by default (vacant properties / agent discretion).
+    // Pass publish:false (or status:'pending') to stage them for review instead.
+    var publish = (req.body.publish !== false) && (req.body.status !== 'pending');
     var slot = {
       id: require('crypto').randomUUID(),
       date: date,
       time: time,
+      source: req.body.source || 'agent',
+      status: req.body.status || (publish ? 'published' : 'pending'),
       maxBookings: parseInt(maxBookings, 10) || 10,
       currentBookings: 0,
       bookings: [],

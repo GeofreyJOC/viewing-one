@@ -874,7 +874,264 @@ function setSlotForRequest(propertyId) {
 
 var slotPropId = null; // property id we're adding a slot for
 
+// --- Seller availability helpers (new) ---
+var slotSelection = {};
+
+function findProp(pid) {
+    return (properties || []).find(function(p) { return (p._id || p.id) === pid; });
+}
+
+function slotChip(pid, s) {
+    var d = new Date(s.date + 'T' + (s.time || '00:00'));
+    var dateStr = d.toLocaleDateString('en-ZA', { weekday: 'short', day: 'numeric', month: 'short' });
+    var st = s.status || 'published';
+    var base = 'display:inline-flex;align-items:center;gap:7px;border-radius:8px;padding:7px 11px;font-size:12.5px;';
+    if (st === 'booked') {
+        return '<div style="' + base + 'background:#fdecec;border:1px solid #f0a3a3;color:#c0392b;">' + dateStr + ' ' + s.time + ' <b style="font-weight:600;">· booked</b></div>';
+    }
+    if (st === 'published') {
+        return '<div style="' + base + 'background:#e7f7ef;border:1px solid #84d6ab;color:#15803d;">' + dateStr + ' ' + s.time +
+            ' <span onclick="unpublishOne(\'' + pid + '\',\'' + s.id + '\')" title="Unpublish" style="cursor:pointer;font-weight:700;">✕</span></div>';
+    }
+    var sel = !!slotSelection[pid + '|' + s.id];
+    var bg = sel ? 'background:linear-gradient(135deg,#c9a96e,#a8853e);border:1px solid transparent;color:#fff;' : 'background:#fdf4e3;border:1px solid #e7b75f;color:#b45309;';
+    var tick = sel ? '☑' : '☐';
+    var src = s.source === 'seller' ? 'Seller' : 'Agent';
+    return '<div onclick="toggleSlotSel(\'' + pid + '\',\'' + s.id + '\')" style="' + base + bg + 'cursor:pointer;user-select:none;">' + tick + ' ' + dateStr + ' ' + s.time + ' <span style="opacity:.7;font-size:11px;">' + src + '</span></div>';
+}
+
+function renderSellerLink(p, pid) {
+    var url = p.sellerToken ? ('https://viewing.one/s/' + p.sellerToken) : '';
+    var html = '<div style="background:#f8f9ff;border:1px solid #e0e7ff;border-radius:10px;padding:12px;margin-top:12px;">';
+    html += '<div style="font-size:13px;font-weight:600;color:#4f46e5;margin-bottom:6px;">🔗 Seller availability link</div>';
+    if (url) {
+        html += '<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">';
+        html += '<input readonly id="sellerlink-' + pid + '" value="' + url + '" onclick="this.select()" style="flex:1;min-width:200px;padding:8px 10px;border:1px solid #dde4ff;border-radius:8px;font-size:12.5px;background:#fff;">';
+        html += '<button class="btn btn-sm btn-primary" onclick="copySellerLink(\'' + pid + '\')">Copy</button>';
+        html += '<button class="btn btn-sm btn-outline" onclick="regenSellerLink(\'' + pid + '\')">Regenerate</button>';
+        html += '<button class="btn btn-sm btn-outline" onclick="revokeSellerLink(\'' + pid + '\')">Revoke</button>';
+        html += '</div>';
+        html += '<div style="font-size:12px;color:#888;margin-top:6px;">Send this by WhatsApp or email. The seller marks when they are free, then you choose which times to publish.</div>';
+    } else {
+        html += '<button class="btn btn-primary btn-sm" onclick="genSellerLink(\'' + pid + '\')">Create seller link</button>';
+        html += '<div style="font-size:12px;color:#888;margin-top:6px;">Generate a private link the seller uses to mark their availability.</div>';
+    }
+    html += '</div>';
+    return html;
+}
+
+function renderAvailSettings(p, pid, wStart, wEnd, slotMin) {
+    var hours = []; for (var h = 0; h < 24; h++) hours.push((h < 10 ? '0' : '') + h + ':00');
+    function opts(sel, arr) { return arr.map(function(v) { return '<option value="' + v + '"' + (String(v) === String(sel) ? ' selected' : '') + '>' + v + '</option>'; }).join(''); }
+    var html = '<details style="margin-top:10px;"><summary style="font-size:12.5px;color:#666;cursor:pointer;">Viewing settings — window, slot length, seller notifications</summary>';
+    html += '<div style="display:flex;flex-wrap:wrap;gap:14px;margin-top:10px;align-items:center;font-size:13px;">';
+    html += '<label>From <select id="ws-' + pid + '" style="padding:6px 8px;border:1px solid #ddd;border-radius:6px;">' + opts(wStart, hours) + '</select></label>';
+    html += '<label>To <select id="we-' + pid + '" style="padding:6px 8px;border:1px solid #ddd;border-radius:6px;">' + opts(wEnd, hours) + '</select></label>';
+    html += '<label>Slot <select id="sm-' + pid + '" style="padding:6px 8px;border:1px solid #ddd;border-radius:6px;">' + opts(slotMin, ['30', '45', '60', '90', '120']) + '</select> min</label>';
+    html += '</div>';
+    html += '<div style="display:flex;flex-wrap:wrap;gap:14px;margin-top:10px;align-items:center;font-size:13px;">';
+    html += '<label>Seller name <input id="sn-' + pid + '" style="padding:6px 8px;border:1px solid #ddd;border-radius:6px;" value="' + escapeHtml(p.sellerName || '') + '" placeholder="e.g. Mrs J. Naidoo"></label>';
+    html += '<label>Seller email <input id="se-' + pid + '" style="padding:6px 8px;border:1px solid #ddd;border-radius:6px;" value="' + escapeHtml(p.sellerEmail || '') + '" placeholder="seller@email.com"></label>';
+    html += '<label style="display:flex;align-items:center;gap:6px;"><input type="checkbox" id="ns-' + pid + '"' + (p.notifySeller ? ' checked' : '') + '> Email seller on each booking</label>';
+    html += '</div>';
+    html += '<div style="margin-top:10px;"><button class="btn btn-sm btn-outline" onclick="saveAvailSettings(\'' + pid + '\')">Save settings</button></div>';
+    html += '</details>';
+    return html;
+}
+
+function renderAvailSlots(pid, upcoming) {
+    var pending = [], published = [], booked = [];
+    upcoming.forEach(function(s) { var st = s.status || 'published'; if (st === 'pending') pending.push(s); else if (st === 'booked') booked.push(s); else published.push(s); });
+    var html = '<div style="font-size:13px;font-weight:600;color:#555;margin:14px 0 6px;">Availability</div>';
+    html += '<div style="display:flex;flex-wrap:wrap;gap:8px;">';
+    if (upcoming.length === 0) html += '<span style="font-size:13px;color:#aaa;">No upcoming times yet.</span>';
+    pending.concat(published, booked).forEach(function(s) { html += slotChip(pid, s); });
+    html += '</div>';
+    var n = pending.filter(function(s) { return slotSelection[pid + '|' + s.id]; }).length;
+    if (pending.length > 0) {
+        html += '<div style="margin-top:10px;display:flex;gap:8px;align-items:center;flex-wrap:wrap;">';
+        html += '<button class="btn btn-primary btn-sm" onclick="publishSelected(\'' + pid + '\')">Publish selected (' + n + ')</button>';
+        html += '<button class="btn btn-sm btn-outline" onclick="clearSlotSel(\'' + pid + '\')">Clear selection</button>';
+        html += '</div>';
+    }
+    return html;
+}
+
+function toggleSlotSel(pid, sid) {
+    var k = pid + '|' + sid;
+    if (slotSelection[k]) delete slotSelection[k]; else slotSelection[k] = true;
+    loadTimeSlots();
+}
+
+function clearSlotSel(pid) {
+    Object.keys(slotSelection).forEach(function(k) { if (k.indexOf(pid + '|') === 0) delete slotSelection[k]; });
+    loadTimeSlots();
+}
+
+async function genSellerLink(pid) {
+    try {
+        var resp = await fetch(API + '/api/availability/' + encodeURIComponent(pid) + '/link', {
+            method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token }, body: '{}'
+        });
+        var data = await resp.json();
+        if (data.success) {
+            var p = findProp(pid); if (p) p.sellerToken = data.token;
+            loadTimeSlots();
+            try { await navigator.clipboard.writeText(data.url); showToast('Seller link created and copied'); }
+            catch (e2) { showToast('Seller link created'); }
+        } else { showToast(data.message || 'Could not create link', 'error'); }
+    } catch (e) { showToast('Error creating link', 'error'); }
+}
+
+async function regenSellerLink(pid) {
+    if (!confirm('Regenerate the link? The old link will stop working immediately.')) return;
+    try {
+        var resp = await fetch(API + '/api/availability/' + encodeURIComponent(pid) + '/link', {
+            method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+            body: JSON.stringify({ regenerate: true })
+        });
+        var data = await resp.json();
+        if (data.success) { var p = findProp(pid); if (p) p.sellerToken = data.token; loadTimeSlots(); showToast('New seller link generated'); }
+        else showToast(data.message || 'Failed', 'error');
+    } catch (e) { showToast('Error', 'error'); }
+}
+
+async function revokeSellerLink(pid) {
+    if (!confirm('Revoke the seller link? It will no longer work for the seller.')) return;
+    try {
+        var resp = await fetch(API + '/api/availability/' + encodeURIComponent(pid) + '/link', {
+            method: 'DELETE', headers: { 'Authorization': 'Bearer ' + token }
+        });
+        var data = await resp.json();
+        if (data.success) { var p = findProp(pid); if (p) p.sellerToken = ''; loadTimeSlots(); showToast('Seller link revoked'); }
+        else showToast(data.message || 'Failed', 'error');
+    } catch (e) { showToast('Error', 'error'); }
+}
+
+function copySellerLink(pid) {
+    var el = document.getElementById('sellerlink-' + pid);
+    if (!el) return;
+    el.select();
+    try { navigator.clipboard.writeText(el.value); showToast('Link copied'); }
+    catch (e) { document.execCommand('copy'); showToast('Link copied'); }
+}
+
+async function saveAvailSettings(pid) {
+    var body = {
+        windowStart: (document.getElementById('ws-' + pid) || {}).value,
+        windowEnd: (document.getElementById('we-' + pid) || {}).value,
+        slotMinutes: parseInt((document.getElementById('sm-' + pid) || {}).value, 10) || 60,
+        sellerName: (document.getElementById('sn-' + pid) || {}).value || '',
+        sellerEmail: (document.getElementById('se-' + pid) || {}).value || '',
+        notifySeller: !!(document.getElementById('ns-' + pid) || {}).checked
+    };
+    try {
+        var resp = await fetch(API + '/api/availability/' + encodeURIComponent(pid) + '/settings', {
+            method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token }, body: JSON.stringify(body)
+        });
+        var data = await resp.json();
+        if (data.success) {
+            var p = findProp(pid);
+            if (p) { p.availability = body; p.notifySeller = body.notifySeller; p.sellerName = body.sellerName; p.sellerEmail = body.sellerEmail; }
+            showToast('Settings saved');
+        } else showToast(data.message || 'Failed to save', 'error');
+    } catch (e) { showToast('Error saving settings', 'error'); }
+}
+
+async function publishSelected(pid) {
+    var ids = Object.keys(slotSelection).filter(function(k) { return k.indexOf(pid + '|') === 0; }).map(function(k) { return k.split('|')[1]; });
+    if (!ids.length) { showToast('Select some times first', 'error'); return; }
+    try {
+        var resp = await fetch(API + '/api/availability/' + encodeURIComponent(pid) + '/publish', {
+            method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token }, body: JSON.stringify({ slotIds: ids })
+        });
+        var data = await resp.json();
+        if (data.success) {
+            var p = findProp(pid);
+            if (p) (p.viewingSlots || []).forEach(function(s) { if (ids.indexOf(s.id) !== -1 && s.status !== 'booked') s.status = 'published'; });
+            clearSlotSel(pid);
+            showToast(data.published + ' time(s) published to buyers');
+        } else showToast(data.message || 'Failed to publish', 'error');
+    } catch (e) { showToast('Error publishing', 'error'); }
+}
+
+async function unpublishOne(pid, sid) {
+    try {
+        var resp = await fetch(API + '/api/availability/' + encodeURIComponent(pid) + '/unpublish', {
+            method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token }, body: JSON.stringify({ slotIds: [sid] })
+        });
+        var data = await resp.json();
+        if (data.success) {
+            var p = findProp(pid);
+            if (p) (p.viewingSlots || []).forEach(function(s) { if (s.id === sid && s.status !== 'booked') s.status = 'pending'; });
+            loadTimeSlots();
+            showToast('Time unpublished');
+        } else showToast(data.message || 'Failed', 'error');
+    } catch (e) { showToast('Error', 'error'); }
+}
+
 function loadTimeSlots() {
+    var container = document.getElementById('timeSlotsContainer');
+    if (!properties || properties.length === 0) {
+        container.innerHTML = '<div class="empty-state"><p style="color:#888;">No properties yet. Add listings first.</p></div>';
+        return;
+    }
+    var html = '';
+    for (var i = 0; i < properties.length; i++) {
+        var p = properties[i];
+        var pid = p._id || p.id;
+        var imgSrc = (p.images && p.images.length > 0) ? (typeof p.images[0] === 'string' ? p.images[0] : (p.images[0].url || '')) : '';
+        var slots = (p.viewingSlots || p.slots || []).slice();
+        var reqs = p.viewingRequests || [];
+        var avail = p.availability || {};
+        var now = new Date();
+        var upcoming = [], past = [];
+        for (var si = 0; si < slots.length; si++) {
+            var s = slots[si];
+            if (new Date(s.date + 'T' + (s.time || '00:00')) > now) upcoming.push(s); else past.push(s);
+        }
+        upcoming.sort(function(a, b) { return String(a.date).localeCompare(String(b.date)) || String(a.time).localeCompare(String(b.time)); });
+
+        html += '<div class="prop-slots-block" id="prop-slots-' + pid + '" style="border:1px solid #eef2ff;border-radius:12px;padding:16px;margin-bottom:16px;">';
+        html += '  <div style="display:flex;align-items:center;gap:12px;margin-bottom:6px;">';
+        if (imgSrc) html += '    <img src="' + imgSrc + '" style="width:48px;height:48px;border-radius:8px;object-fit:cover;" alt="">';
+        else html += '    <div style="width:48px;height:48px;border-radius:8px;background:#eef2ff;display:flex;align-items:center;justify-content:center;font-size:18px;">🏠</div>';
+        html += '    <div style="flex:1;">';
+        html += '      <div style="font-weight:600;font-size:15px;">' + escapeHtml(p.title || '') + '</div>';
+        html += '      <div style="font-size:13px;color:#888;">' + escapeHtml(p.price || '') + (p.location ? ' &middot; ' + escapeHtml(p.location) : '') + '</div>';
+        html += '    </div>';
+        html += '    <button class="btn btn-primary btn-sm" onclick="openAddSlot(\'' + pid + '\')" style="white-space:nowrap;">+ Add Time</button>';
+        html += '  </div>';
+
+        if (reqs && reqs.length > 0) {
+            html += '  <div style="background:#fef9e7;border:1px solid #f9e79f;border-radius:8px;padding:10px;margin:10px 0;">';
+            html += '    <div style="font-size:13px;font-weight:600;color:#b7950b;margin-bottom:6px;">⏳ ' + reqs.length + ' pending request(s) — no time set yet</div>';
+            for (var ri = 0; ri < reqs.length; ri++) {
+                html += '    <div style="font-size:13px;color:#888;margin-left:8px;">👤 ' + escapeHtml(reqs[ri].visitorName || '') + ' &mdash; 💬 ' + escapeHtml(reqs[ri].visitorWhatsApp || '—') + '</div>';
+            }
+            html += '  </div>';
+        }
+
+        html += renderSellerLink(p, pid);
+        html += renderAvailSettings(p, pid, avail.windowStart || '08:00', avail.windowEnd || '20:00', avail.slotMinutes || 60);
+        html += renderAvailSlots(pid, upcoming);
+
+        if (past.length > 0) {
+            html += '  <details style="margin-top:10px;"><summary style="font-size:12px;color:#999;cursor:pointer;">' + past.length + ' past slot(s)</summary>';
+            html += '  <div style="margin-top:6px;display:flex;flex-wrap:wrap;gap:6px;">';
+            for (var pj = 0; pj < past.length; pj++) {
+                var psl = past[pj];
+                var ds = new Date(psl.date + 'T' + (psl.time || '00:00')).toLocaleDateString('en-ZA', { weekday: 'short', day: 'numeric', month: 'short' });
+                html += '    <span style="background:#f5f5f5;color:#aaa;border-radius:6px;padding:4px 10px;font-size:12px;text-decoration:line-through;">' + ds + ' ' + psl.time + '</span>';
+            }
+            html += '  </div></details>';
+        }
+        html += '</div>';
+    }
+    container.innerHTML = html;
+}
+
+function loadTimeSlotsLegacy() {
     var container = document.getElementById('timeSlotsContainer');
     if (!properties || properties.length === 0) {
         container.innerHTML = '<div class="empty-state"><p style="color:#888;">No properties yet. Add listings first.</p></div>';
@@ -1000,7 +1257,7 @@ async function saveNewSlot() {
         var resp = await fetch(API + '/api/properties/' + slotPropId + '/slots', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
-            body: JSON.stringify({ date: date, time: time, maxBookings: maxBookings })
+            body: JSON.stringify({ date: date, time: time, maxBookings: maxBookings, source: 'agent', publish: true })
         });
         var data = await resp.json();
         if (data.success) {
