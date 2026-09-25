@@ -149,6 +149,70 @@ async function notifySellerBooking(prop, date, time, visitorName) {
   } catch (e) { console.error('Seller booking notification error:', e.message); }
 }
 
+// Notify the visitor (buyer) that their viewing is confirmed / their request was received.
+async function notifyVisitorBooking(opts) {
+  try {
+    if (!transporter) return;
+    var o = opts || {};
+    if (!o.visitorEmail) return;
+    var cal = require('../calendar-helper');
+    var esc = cal.htmlEscape;
+    var propertyTitle = o.propertyTitle || 'your viewing';
+    var isRequest = !!o.isRequest || o.date === 'To be arranged';
+    var isFull = !!o.isOverCapacity;
+
+    var heading, subject, intro, details, calendarHTML = '', attachments = [];
+
+    if (isRequest) {
+      heading = 'Viewing request received';
+      subject = 'We received your viewing request: ' + propertyTitle;
+      intro = '<p>Hi ' + esc(o.visitorName || '') + ', we received your request for <strong>' + esc(propertyTitle) + '</strong> and passed it to the agent. They will contact you shortly with available times.</p>';
+      details = '<p><strong>Property:</strong> ' + esc(propertyTitle) + '</p>' +
+        (o.location ? '<p><strong>Address:</strong> ' + esc(o.location) + '</p>' : '');
+    } else if (isFull) {
+      heading = 'Your viewing request';
+      subject = 'Your viewing request: ' + propertyTitle;
+      intro = '<p>Hi ' + esc(o.visitorName || '') + ', that time is currently full, so we passed your details to the agent for <strong>' + esc(propertyTitle) + '</strong>. They will be in touch when a slot opens up.</p>';
+      details = '<p><strong>Property:</strong> ' + esc(propertyTitle) + '</p>' +
+        (o.location ? '<p><strong>Address:</strong> ' + esc(o.location) + '</p>' : '') +
+        '<p><strong>Requested:</strong> ' + esc(o.date) + ' at ' + esc(o.time) + '</p>';
+    } else {
+      heading = 'Your viewing is confirmed';
+      subject = 'Your viewing is confirmed: ' + propertyTitle + ' on ' + o.date + ' at ' + o.time;
+      intro = '<p>Hi ' + esc(o.visitorName || '') + ', your viewing is booked. Here are the details:</p>';
+      details = '<p><strong>Property:</strong> ' + esc(propertyTitle) + '</p>' +
+        (o.location ? '<p><strong>Address:</strong> ' + esc(o.location) + '</p>' : '') +
+        '<p><strong>Date:</strong> ' + esc(o.date) + '</p>' +
+        '<p><strong>Time:</strong> ' + esc(o.time) + '</p>';
+      var start = cal.parseSlotDateTime(o.date, o.time);
+      if (start) {
+        var end = new Date(start.getTime() + cal.VIEWING_DURATION_MINUTES * 60000);
+        var eventTitle = 'Viewing: ' + propertyTitle;
+        var eventLocation = o.location || propertyTitle;
+        var eventDescription = 'Viewing booked via viewing.one - ' + propertyTitle;
+        var links = cal.buildCalendarLinks({ start: start, end: end, title: eventTitle, description: eventDescription, location: eventLocation });
+        var ics = cal.buildIcs({ start: start, end: end, title: eventTitle, description: eventDescription, location: eventLocation, organizerName: 'Viewing.One', organizerEmail: 'listings@viewing.one' });
+        attachments.push({ filename: 'viewing.ics', content: ics, contentType: 'text/calendar' });
+        calendarHTML = '<hr><p><strong>Add it to your calendar:</strong></p>' +
+          '<p><a href="' + links.google + '" style="display:inline-block;background:#1a73e8;color:#ffffff;text-decoration:none;padding:8px 14px;border-radius:6px;margin-right:8px;">Add to Google Calendar</a>' +
+          '<a href="' + links.outlook + '" style="display:inline-block;background:#0078d4;color:#ffffff;text-decoration:none;padding:8px 14px;border-radius:6px;">Add to Outlook</a></p>' +
+          '<p style="font-size:12px;color:#888;">Or open the attached viewing.ics file in any calendar app.</p>';
+      }
+    }
+
+    await transporter.sendMail({
+      from: '"Viewing.One" <listings@viewing.one>',
+      to: o.visitorEmail,
+      subject: subject,
+      html: '<h2>' + heading + '</h2>' + intro + details + calendarHTML +
+        '<hr><p style="color:#888;font-size:12px;">You received this because you booked a viewing on viewing.one.</p>',
+      attachments: attachments
+    });
+  } catch (e) {
+    console.error('Visitor confirmation email error:', e.message);
+  }
+}
+
 // POST /api/bookings - Create a new booking
 router.post('/', async (req, res) => {
   try {
@@ -192,6 +256,7 @@ router.post('/', async (req, res) => {
           }
 
           notifyAgentBooking(agentEmail, property.title, visitorName, visitorWhatsApp, visitorEmail, 'To be arranged', 'To be arranged', propertyId, property.location);
+          notifyVisitorBooking({ visitorEmail: visitorEmail, visitorName: visitorName, propertyTitle: property.title, location: property.location, date: 'To be arranged', time: 'To be arranged', isRequest: true });
 
           return res.status(201).json({
             success: true, message: 'Viewing request sent! The agent will contact you with available times.',
@@ -237,6 +302,7 @@ router.post('/', async (req, res) => {
         // Send email notification async (don't block response)
         notifyAgentBooking(agentEmail, property.title, visitorName, visitorWhatsApp, visitorEmail, slot.date, slot.time, propertyId, property.location);
         notifySellerBooking(property, slot.date, slot.time, visitorName);
+        notifyVisitorBooking({ visitorEmail: visitorEmail, visitorName: visitorName, propertyTitle: property.title, location: property.location, date: slot.date, time: slot.time, isOverCapacity: isOverCapacity });
 
         var bookedMsg = isOverCapacity
           ? 'This time slot has reached capacity, but your details have been sent to the agent. They\'ll be in touch when a new slot opens up.'
@@ -326,6 +392,7 @@ router.post('/', async (req, res) => {
 
       // Send notification email async
       notifyAgentBooking(agentEmail, prop.title, visitorName, visitorWhatsApp, visitorEmail, 'To be arranged', 'To be arranged', prop._id || prop.id || propertyId, prop.location);
+      notifyVisitorBooking({ visitorEmail: visitorEmail, visitorName: visitorName, propertyTitle: prop.title, location: prop.location, date: 'To be arranged', time: 'To be arranged', isRequest: true });
 
       return res.status(201).json({
         success: true, message: 'Viewing request sent! The agent will contact you with available times.',
@@ -401,6 +468,7 @@ router.post('/', async (req, res) => {
     // Send notification email async
     notifyAgentBooking(agentEmail, prop.title, visitorName, visitorWhatsApp, visitorEmail, slot.date, slot.time, prop._id || prop.id || propertyId, prop.location);
     notifySellerBooking(prop, slot.date, slot.time, visitorName);
+    notifyVisitorBooking({ visitorEmail: visitorEmail, visitorName: visitorName, propertyTitle: prop.title, location: prop.location, date: slot.date, time: slot.time, isOverCapacity: isOverCapacity });
 
     var bookedMsg = isOverCapacity
       ? 'This time slot has reached capacity, but your details have been sent to the agent. They\'ll be in touch when a new slot opens up.'
