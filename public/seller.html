@@ -91,11 +91,12 @@
   function render(){
     var s = data.settings || {windowStart:'08:00',windowEnd:'20:00',slotMinutes:60};
     var startM = toMinutes(s.windowStart), endM = toMinutes(s.windowEnd), step = parseInt(s.slotMinutes,10)||60;
+    var allowedDays = (s.daysOfWeek && s.daysOfWeek.length) ? s.daysOfWeek.map(function(x){return parseInt(x,10);}) : [0,1,2,3,4,5,6];
     var today = new Date(); today.setHours(0,0,0,0);
     var html = '';
     html += '<div class="hero">';
     html += '<h1>When are you free for viewings?</h1>';
-    html += '<p>Tap the times that suit you. Your agent will then offer them to interested buyers.</p>';
+    html += '<p>Your agent has set the days and times below. Tap the ones that suit you, and they will offer them to interested buyers.</p>';
     html += '<div class="propline">🏠 <span><b>'+esc(data.property.title)+'</b>'+(data.property.location?' · '+esc(data.property.location):'')+'</span></div>';
     html += '</div>';
     html += '<div class="body">';
@@ -103,6 +104,7 @@
 
     for(var d=0; d<DAYS; d++){
       var dt = new Date(today); dt.setDate(today.getDate()+d);
+      if(allowedDays.indexOf(dt.getDay())===-1) continue;
       var dstr = dt.getFullYear()+'-'+pad(dt.getMonth()+1)+'-'+pad(dt.getDate());
       // only render days that have any pickable/locked/booked slot OR nothing — show weekends + all days
       var chips = '';

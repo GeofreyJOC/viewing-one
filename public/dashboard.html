@@ -920,15 +920,24 @@ function renderSellerLink(p, pid) {
     return html;
 }
 
-function renderAvailSettings(p, pid, wStart, wEnd, slotMin) {
+function renderAvailSettings(p, pid, wStart, wEnd, slotMin, days) {
     var hours = []; for (var h = 0; h < 24; h++) hours.push((h < 10 ? '0' : '') + h + ':00');
     function opts(sel, arr) { return arr.map(function(v) { return '<option value="' + v + '"' + (String(v) === String(sel) ? ' selected' : '') + '>' + v + '</option>'; }).join(''); }
-    var html = '<details style="margin-top:10px;"><summary style="font-size:12.5px;color:#666;cursor:pointer;">Viewing settings — window, slot length, seller notifications</summary>';
+    var DOW = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+    var daySet = {}; (Array.isArray(days) && days.length ? days : [0, 1, 2, 3, 4, 5, 6]).forEach(function(d) { daySet[parseInt(d, 10)] = true; });
+    var html = '<details style="margin-top:10px;"><summary style="font-size:12.5px;color:#666;cursor:pointer;">Viewing settings — window, slot length, days, seller notifications</summary>';
     html += '<div style="display:flex;flex-wrap:wrap;gap:14px;margin-top:10px;align-items:center;font-size:13px;">';
     html += '<label>From <select id="ws-' + pid + '" style="padding:6px 8px;border:1px solid #ddd;border-radius:6px;">' + opts(wStart, hours) + '</select></label>';
     html += '<label>To <select id="we-' + pid + '" style="padding:6px 8px;border:1px solid #ddd;border-radius:6px;">' + opts(wEnd, hours) + '</select></label>';
     html += '<label>Slot <select id="sm-' + pid + '" style="padding:6px 8px;border:1px solid #ddd;border-radius:6px;">' + opts(slotMin, ['30', '45', '60', '90', '120']) + '</select> min</label>';
     html += '</div>';
+    html += '<div style="margin-top:10px;font-size:13px;"><div style="color:#666;margin-bottom:6px;">Days the seller can pick from:</div>';
+    html += '<div style="display:flex;flex-wrap:wrap;gap:8px;">';
+    for (var di = 0; di < 7; di++) {
+        html += '<label style="display:flex;align-items:center;gap:5px;background:#f8f9ff;border:1px solid #e0e7ff;border-radius:8px;padding:5px 10px;cursor:pointer;">' +
+            '<input type="checkbox" class="days-' + pid + '" value="' + di + '"' + (daySet[di] ? ' checked' : '') + '> ' + DOW[di] + '</label>';
+    }
+    html += '</div><div style="font-size:11.5px;color:#999;margin-top:6px;">Leave a day off if you are not available for viewings on it. The seller only sees the days you tick.</div></div>';
     html += '<div style="display:flex;flex-wrap:wrap;gap:14px;margin-top:10px;align-items:center;font-size:13px;">';
     html += '<label>Seller name <input id="sn-' + pid + '" style="padding:6px 8px;border:1px solid #ddd;border-radius:6px;" value="' + escapeHtml(p.sellerName || '') + '" placeholder="e.g. Mrs J. Naidoo"></label>';
     html += '<label>Seller email <input id="se-' + pid + '" style="padding:6px 8px;border:1px solid #ddd;border-radius:6px;" value="' + escapeHtml(p.sellerEmail || '') + '" placeholder="seller@email.com"></label>';
@@ -1017,10 +1026,14 @@ function copySellerLink(pid) {
 }
 
 async function saveAvailSettings(pid) {
+    var days = [];
+    document.querySelectorAll('.days-' + pid).forEach(function(b) { if (b.checked) days.push(parseInt(b.value, 10)); });
+    if (!days.length) { showToast('Pick at least one day the seller can choose from', 'error'); return; }
     var body = {
         windowStart: (document.getElementById('ws-' + pid) || {}).value,
         windowEnd: (document.getElementById('we-' + pid) || {}).value,
         slotMinutes: parseInt((document.getElementById('sm-' + pid) || {}).value, 10) || 60,
+        daysOfWeek: days,
         sellerName: (document.getElementById('sn-' + pid) || {}).value || '',
         sellerEmail: (document.getElementById('se-' + pid) || {}).value || '',
         notifySeller: !!(document.getElementById('ns-' + pid) || {}).checked
@@ -1113,7 +1126,7 @@ function loadTimeSlots() {
         }
 
         html += renderSellerLink(p, pid);
-        html += renderAvailSettings(p, pid, avail.windowStart || '08:00', avail.windowEnd || '20:00', avail.slotMinutes || 60);
+        html += renderAvailSettings(p, pid, avail.windowStart || '08:00', avail.windowEnd || '20:00', avail.slotMinutes || 60, avail.daysOfWeek);
         html += renderAvailSlots(pid, upcoming);
 
         if (past.length > 0) {

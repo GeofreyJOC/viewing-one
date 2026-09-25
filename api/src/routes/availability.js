@@ -135,10 +135,13 @@ function verifyAuth(req) {
 
 function defaultAvailability(prop) {
   var a = prop.availability || {};
+  var days = (Array.isArray(a.daysOfWeek) ? a.daysOfWeek : []).map(function (d) { return parseInt(d, 10); })
+    .filter(function (d) { return d >= 0 && d <= 6; });
   return {
     windowStart: a.windowStart || '08:00',
     windowEnd: a.windowEnd || '20:00',
-    slotMinutes: parseInt(a.slotMinutes, 10) || 60
+    slotMinutes: parseInt(a.slotMinutes, 10) || 60,
+    daysOfWeek: days.length ? days : [0, 1, 2, 3, 4, 5, 6]
   };
 }
 
@@ -222,6 +225,11 @@ agentRouter.post('/:propertyId/settings', async function (req, res) {
     if (b.windowStart) a.windowStart = b.windowStart;
     if (b.windowEnd) a.windowEnd = b.windowEnd;
     if (b.slotMinutes) a.slotMinutes = parseInt(b.slotMinutes, 10) || 60;
+    if (typeof b.daysOfWeek !== 'undefined') {
+      var dd = (Array.isArray(b.daysOfWeek) ? b.daysOfWeek : []).map(function (x) { return parseInt(x, 10); })
+        .filter(function (x) { return x >= 0 && x <= 6; });
+      a.daysOfWeek = dd.length ? dd : [0, 1, 2, 3, 4, 5, 6];
+    }
     prop.availability = a;
     if (typeof b.notifySeller !== 'undefined') prop.notifySeller = !!b.notifySeller;
     if (typeof b.sellerName !== 'undefined') prop.sellerName = b.sellerName || '';
