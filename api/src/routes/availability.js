@@ -141,7 +141,8 @@ function defaultAvailability(prop) {
     windowStart: a.windowStart || '08:00',
     windowEnd: a.windowEnd || '20:00',
     slotMinutes: parseInt(a.slotMinutes, 10) || 60,
-    daysOfWeek: days.length ? days : [0, 1, 2, 3, 4, 5, 6]
+    daysOfWeek: days.length ? days : [0, 1, 2, 3, 4, 5, 6],
+    horizonDays: Math.min(Math.max(parseInt(a.horizonDays, 10) || 14, 1), 90)
   };
 }
 
@@ -230,6 +231,7 @@ agentRouter.post('/:propertyId/settings', async function (req, res) {
         .filter(function (x) { return x >= 0 && x <= 6; });
       a.daysOfWeek = dd.length ? dd : [0, 1, 2, 3, 4, 5, 6];
     }
+    if (b.horizonDays) a.horizonDays = Math.min(Math.max(parseInt(b.horizonDays, 10) || 14, 1), 90);
     prop.availability = a;
     if (typeof b.notifySeller !== 'undefined') prop.notifySeller = !!b.notifySeller;
     if (typeof b.sellerName !== 'undefined') prop.sellerName = b.sellerName || '';

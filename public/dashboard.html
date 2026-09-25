@@ -920,31 +920,39 @@ function renderSellerLink(p, pid) {
     return html;
 }
 
-function renderAvailSettings(p, pid, wStart, wEnd, slotMin, days) {
+function renderAvailSettings(p, pid, wStart, wEnd, slotMin, days, horizon) {
     var hours = []; for (var h = 0; h < 24; h++) hours.push((h < 10 ? '0' : '') + h + ':00');
     function opts(sel, arr) { return arr.map(function(v) { return '<option value="' + v + '"' + (String(v) === String(sel) ? ' selected' : '') + '>' + v + '</option>'; }).join(''); }
     var DOW = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
     var daySet = {}; (Array.isArray(days) && days.length ? days : [0, 1, 2, 3, 4, 5, 6]).forEach(function(d) { daySet[parseInt(d, 10)] = true; });
-    var html = '<details style="margin-top:10px;"><summary style="font-size:12.5px;color:#666;cursor:pointer;">Viewing settings — window, slot length, days, seller notifications</summary>';
-    html += '<div style="display:flex;flex-wrap:wrap;gap:14px;margin-top:10px;align-items:center;font-size:13px;">';
+    var hz = parseInt(horizon, 10) || 14;
+    var html = '<details class="avail-settings" style="margin-top:12px;border:1px solid #e0e7ff;border-radius:12px;overflow:hidden;background:#fafbff;">';
+    html += '<summary class="avail-settings-toggle" style="list-style:none;cursor:pointer;display:flex;align-items:center;justify-content:space-between;gap:10px;padding:13px 16px;background:linear-gradient(135deg,#4f46e5,#6366f1);color:#fff;">' +
+        '<span style="font-weight:600;font-size:14px;">⚙️ Viewing settings</span>' +
+        '<span style="font-size:12px;opacity:.92;">Times · Days · How far ahead&nbsp;&nbsp;▾</span></summary>';
+    html += '<div style="padding:14px 16px 16px;">';
+    html += '<div style="display:flex;flex-wrap:wrap;gap:14px;margin-top:2px;align-items:center;font-size:13px;">';
     html += '<label>From <select id="ws-' + pid + '" style="padding:6px 8px;border:1px solid #ddd;border-radius:6px;">' + opts(wStart, hours) + '</select></label>';
     html += '<label>To <select id="we-' + pid + '" style="padding:6px 8px;border:1px solid #ddd;border-radius:6px;">' + opts(wEnd, hours) + '</select></label>';
     html += '<label>Slot <select id="sm-' + pid + '" style="padding:6px 8px;border:1px solid #ddd;border-radius:6px;">' + opts(slotMin, ['30', '45', '60', '90', '120']) + '</select> min</label>';
     html += '</div>';
-    html += '<div style="margin-top:10px;font-size:13px;"><div style="color:#666;margin-bottom:6px;">Days the seller can pick from:</div>';
-    html += '<div style="display:flex;flex-wrap:wrap;gap:8px;">';
+    html += '<div style="margin-top:12px;font-size:13px;"><div style="color:#666;margin-bottom:6px;">Days the seller can pick from:</div>';
+    html += '<div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;">';
     for (var di = 0; di < 7; di++) {
-        html += '<label style="display:flex;align-items:center;gap:5px;background:#f8f9ff;border:1px solid #e0e7ff;border-radius:8px;padding:5px 10px;cursor:pointer;">' +
+        html += '<label style="display:flex;align-items:center;gap:5px;background:#fff;border:1px solid #e0e7ff;border-radius:8px;padding:5px 10px;cursor:pointer;">' +
             '<input type="checkbox" class="days-' + pid + '" value="' + di + '"' + (daySet[di] ? ' checked' : '') + '> ' + DOW[di] + '</label>';
     }
-    html += '</div><div style="font-size:11.5px;color:#999;margin-top:6px;">Leave a day off if you are not available for viewings on it. The seller only sees the days you tick.</div></div>';
-    html += '<div style="display:flex;flex-wrap:wrap;gap:14px;margin-top:10px;align-items:center;font-size:13px;">';
+    html += '<label style="display:flex;align-items:center;gap:6px;margin-left:4px;font-weight:600;color:#4f46e5;">Calendar runs for ' +
+        '<select id="hz-' + pid + '" style="padding:5px 8px;border:1px solid #ddd;border-radius:6px;">' + opts(hz, ['7', '14', '21', '30', '60', '90']) + '</select> days ahead</label>';
+    html += '</div>';
+    html += '<div style="font-size:11.5px;color:#999;margin-top:6px;">Leave a day off if you are not available for viewings on it. The seller only sees the days you tick, within the number of days ahead above.</div></div>';
+    html += '<div style="display:flex;flex-wrap:wrap;gap:14px;margin-top:12px;align-items:center;font-size:13px;">';
     html += '<label>Seller name <input id="sn-' + pid + '" style="padding:6px 8px;border:1px solid #ddd;border-radius:6px;" value="' + escapeHtml(p.sellerName || '') + '" placeholder="e.g. Mrs J. Naidoo"></label>';
     html += '<label>Seller email <input id="se-' + pid + '" style="padding:6px 8px;border:1px solid #ddd;border-radius:6px;" value="' + escapeHtml(p.sellerEmail || '') + '" placeholder="seller@email.com"></label>';
     html += '<label style="display:flex;align-items:center;gap:6px;"><input type="checkbox" id="ns-' + pid + '"' + (p.notifySeller ? ' checked' : '') + '> Email seller on each booking</label>';
     html += '</div>';
-    html += '<div style="margin-top:10px;"><button class="btn btn-sm btn-outline" onclick="saveAvailSettings(\'' + pid + '\')">Save settings</button></div>';
-    html += '</details>';
+    html += '<div style="margin-top:12px;"><button class="btn btn-sm btn-primary" onclick="saveAvailSettings(\'' + pid + '\')">Save settings</button></div>';
+    html += '</div></details>';
     return html;
 }
 
@@ -1034,6 +1042,7 @@ async function saveAvailSettings(pid) {
         windowEnd: (document.getElementById('we-' + pid) || {}).value,
         slotMinutes: parseInt((document.getElementById('sm-' + pid) || {}).value, 10) || 60,
         daysOfWeek: days,
+        horizonDays: parseInt((document.getElementById('hz-' + pid) || {}).value, 10) || 14,
         sellerName: (document.getElementById('sn-' + pid) || {}).value || '',
         sellerEmail: (document.getElementById('se-' + pid) || {}).value || '',
         notifySeller: !!(document.getElementById('ns-' + pid) || {}).checked
@@ -1126,7 +1135,7 @@ function loadTimeSlots() {
         }
 
         html += renderSellerLink(p, pid);
-        html += renderAvailSettings(p, pid, avail.windowStart || '08:00', avail.windowEnd || '20:00', avail.slotMinutes || 60, avail.daysOfWeek);
+        html += renderAvailSettings(p, pid, avail.windowStart || '08:00', avail.windowEnd || '20:00', avail.slotMinutes || 60, avail.daysOfWeek, avail.horizonDays);
         html += renderAvailSlots(pid, upcoming);
 
         if (past.length > 0) {
@@ -2077,6 +2086,12 @@ var tourSteps = [
     placement: 'right'
   },
   {
+    target: '.avail-settings-toggle',
+    title: '⚙️ Viewing Settings',
+    text: 'Open <strong>Viewing settings</strong> on a property to set the times, tick the days you are available, and choose how many days ahead the calendar runs. Then send the seller a private link and they pick from exactly those days and times.',
+    placement: 'bottom'
+  },
+  {
     target: '#agentPageLink',
     title: '🔗 Share Your Agent Link',
     text: 'This is your public agent page URL. <strong>Add this link to all your property listings on any portal</strong> — that way, anyone viewing your listing can click through and book a viewing instantly.',
@@ -2134,12 +2149,8 @@ function showTourStep(index) {
   var overlay = document.getElementById('tourOverlay');
   overlay.classList.add('active');
   
-  // Find target element
-  var el = document.querySelector(step.target);
-  if (!el) return endTour();
-  
   // Auto-switch to correct tab if needed
-  var tabMap = {'#qrSection':'profile','#tour-slots':'slots','#tour-add':'add','#tour-bookings':'bookings','#tour-feedback':'feedback'};
+  var tabMap = {'#qrSection':'profile','#tour-slots':'slots','#tour-add':'add','#tour-bookings':'bookings','#tour-feedback':'feedback','.avail-settings-toggle':'slots'};
   var tabId = tabMap[step.target];
   if (tabId && typeof switchTab === 'function') {
     var tabContent = document.getElementById('tab-' + tabId);
@@ -2147,13 +2158,20 @@ function showTourStep(index) {
       switchTab(tabId);
     }
   }
-  // Re-query after potential tab switch
-  el = document.querySelector(step.target);
+  // Find target element, retrying because tab content renders asynchronously
+  var tries = 0;
+  (function waitForTarget() {
+    if (document.querySelector(step.target)) { renderTourStep(step, index, overlay); return; }
+    if (++tries < 20) { setTimeout(waitForTarget, 150); return; }
+    endTour();
+  })();
+}
+
+function renderTourStep(step, index, overlay) {
+  var el = document.querySelector(step.target);
   if (!el) return endTour();
-  
   // Scroll element into view
   el.scrollIntoView({ block: 'center' });
-  
   // Get element position (wait a tick for scroll to settle)
   var rect = el.getBoundingClientRect();
   

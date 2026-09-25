@@ -51,7 +51,9 @@ const propertySchema = new mongoose.Schema({
     windowEnd: { type: String, default: '20:00' },
     slotMinutes: { type: Number, default: 60 },
     // Days of the week (0=Sun .. 6=Sat) the seller may choose viewing times from.
-    daysOfWeek: { type: [Number], default: [0, 1, 2, 3, 4, 5, 6] }
+    daysOfWeek: { type: [Number], default: [0, 1, 2, 3, 4, 5, 6] },
+    // How many days into the future the seller's calendar runs.
+    horizonDays: { type: Number, default: 14 }
   },
   notifySeller: { type: Boolean, default: false },
   sellerName: { type: String, default: '' },

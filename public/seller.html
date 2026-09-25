@@ -92,6 +92,7 @@
     var s = data.settings || {windowStart:'08:00',windowEnd:'20:00',slotMinutes:60};
     var startM = toMinutes(s.windowStart), endM = toMinutes(s.windowEnd), step = parseInt(s.slotMinutes,10)||60;
     var allowedDays = (s.daysOfWeek && s.daysOfWeek.length) ? s.daysOfWeek.map(function(x){return parseInt(x,10);}) : [0,1,2,3,4,5,6];
+    var horizon = parseInt(s.horizonDays,10) || DAYS;
     var today = new Date(); today.setHours(0,0,0,0);
     var html = '';
     html += '<div class="hero">';
@@ -102,7 +103,7 @@
     html += '<div class="body">';
     html += '<div class="legend"><span><i style="background:#fff;border:1px solid #e7e2da"></i>Available</span><span><i style="background:linear-gradient(135deg,#c9a96e,#a8853e)"></i>Your pick</span><span><i style="background:#e7f7ef;border:1px solid #84d6ab"></i>Offered</span><span><i style="background:#fdecec;border:1px solid #f0a3a3"></i>Booked</span></div>';
 
-    for(var d=0; d<DAYS; d++){
+    for(var d=0; d<horizon; d++){
       var dt = new Date(today); dt.setDate(today.getDate()+d);
       if(allowedDays.indexOf(dt.getDay())===-1) continue;
       var dstr = dt.getFullYear()+'-'+pad(dt.getMonth()+1)+'-'+pad(dt.getDate());
