@@ -170,12 +170,13 @@ async function notifyVisitorBooking(opts) {
       details = '<p><strong>Property:</strong> ' + esc(propertyTitle) + '</p>' +
         (o.location ? '<p><strong>Address:</strong> ' + esc(o.location) + '</p>' : '');
     } else if (isFull) {
-      heading = 'Your viewing request';
-      subject = 'Your viewing request: ' + propertyTitle;
-      intro = '<p>Hi ' + esc(o.visitorName || '') + ', that time is currently full, so we passed your details to the agent for <strong>' + esc(propertyTitle) + '</strong>. They will be in touch when a slot opens up.</p>';
+      heading = 'That time is already booked';
+      subject = 'Please pick another time: ' + propertyTitle;
+      intro = '<p>Hi ' + esc(o.visitorName || '') + ', that viewing time is already fully booked, so we could not confirm it. We have let the agent know you are interested in <strong>' + esc(propertyTitle) + '</strong>, but please book another time slot to secure your viewing.</p>';
       details = '<p><strong>Property:</strong> ' + esc(propertyTitle) + '</p>' +
         (o.location ? '<p><strong>Address:</strong> ' + esc(o.location) + '</p>' : '') +
-        '<p><strong>Requested:</strong> ' + esc(o.date) + ' at ' + esc(o.time) + '</p>';
+        '<p><strong>Requested:</strong> ' + esc(o.date) + ' at ' + esc(o.time) + ' (already booked)</p>' +
+        '<p><a href="https://viewing.one">Pick another viewing time &rarr;</a></p>';
     } else {
       heading = 'Your viewing is confirmed';
       subject = 'Your viewing is confirmed: ' + propertyTitle + ' on ' + o.date + ' at ' + o.time;
@@ -305,7 +306,7 @@ router.post('/', async (req, res) => {
         notifyVisitorBooking({ visitorEmail: visitorEmail, visitorName: visitorName, propertyTitle: property.title, location: property.location, date: slot.date, time: slot.time, isOverCapacity: isOverCapacity });
 
         var bookedMsg = isOverCapacity
-          ? 'This time slot has reached capacity, but your details have been sent to the agent. They\'ll be in touch when a new slot opens up.'
+          ? 'That time is already booked. We\'ve let the agent know you\'re interested, but please choose another time slot to secure your viewing.'
           : 'Viewing booked successfully!';
 
         return res.status(201).json({
@@ -471,7 +472,7 @@ router.post('/', async (req, res) => {
     notifyVisitorBooking({ visitorEmail: visitorEmail, visitorName: visitorName, propertyTitle: prop.title, location: prop.location, date: slot.date, time: slot.time, isOverCapacity: isOverCapacity });
 
     var bookedMsg = isOverCapacity
-      ? 'This time slot has reached capacity, but your details have been sent to the agent. They\'ll be in touch when a new slot opens up.'
+      ? 'That time is already booked. We\'ve let the agent know you\'re interested, but please choose another time slot to secure your viewing.'
       : 'Viewing booked successfully!';
 
     res.status(201).json({
