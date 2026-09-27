@@ -1,0 +1,11 @@
+User-agent: *
+Allow: /
+Disallow: /api/
+Disallow: /admin.html
+Disallow: /dashboard.html
+Disallow: /seller.html
+Disallow: /agent-template.html
+Disallow: /payfast/
+Disallow: /paypal/
+
+Sitemap: https://viewing.one/sitemap.xml
